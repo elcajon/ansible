@@ -124,9 +124,9 @@
 
 - name: Backrest Konfiguration aus Template erzeugen
   ansible.builtin.template:
-     src: templates/config.json.j2
-     dest: /root/.config/backrest/config.json
-     force: false
+    src: templates/config.json.j2
+    dest: /root/.config/backrest/config.json
+    force: false
 
 - name: Wrapper-Skript für Backrest kopieren
   template:
