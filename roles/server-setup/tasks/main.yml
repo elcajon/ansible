@@ -130,7 +130,7 @@
 
 - name: Wrapper-Skript für Backrest kopieren
   template:
-    src: files/backrest-wrapper.sh.j2
+    src: files/backrest-wrapper.sh
     dest: /usr/local/bin/backrest-wrapper.sh
     owner: root
     group: root
@@ -138,7 +138,7 @@
 
 - name: Systemd Service Datei für Backrest kopieren
   template:
-    src: files/backrest.service.j2
+    src: files/backrest.service
     dest: /etc/systemd/system/backrest.service
     owner: root
     group: root
