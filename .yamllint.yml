@@ -1,0 +1,8 @@
+---
+# yamllint configuration file
+# This extends the relaxed preset but disables line-length checking
+
+extends: relaxed
+
+rules:
+  line-length: disable
