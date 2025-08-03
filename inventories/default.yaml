@@ -1,0 +1,16 @@
+home_servers:
+  hosts:
+    proxmox:
+      ansible_host: proxmox
+  vars:
+    ansible_user: root
+    ansible_python_interpreter: /usr/bin/python3
+remote_servers:
+  hosts:
+    edge:
+      ansible_host: edge
+    lstbv:
+      ansible_host: lstbv
+  vars:
+    ansible_user: root
+    ansible_python_interpreter: /usr/bin/python3

@@ -1,0 +1,14 @@
+[Unit]
+Description=Backrest Service
+After=network.target tailscaled.service
+Wants=tailscaled.service
+
+[Service]
+Type=simple
+User=root
+Group=root
+ExecStart=/usr/local/bin/backrest-wrapper.sh
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
