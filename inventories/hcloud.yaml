@@ -1,4 +1,0 @@
-# Inventory File for all Hetzner Servers
-plugin: hetzner.hcloud.hcloud
-api_token: "{{ lookup('community.general.onepassword', 'Hetzner Cloud API' , field='token', vault='CI') }}"
-hostname: "{{ datacenter }}-{{ name }}-{{ server_type }}"

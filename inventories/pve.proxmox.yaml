@@ -1,9 +1,0 @@
-plugin: community.general.proxmox
-url: "{{ lookup('community.general.onepassword', 'Proxmox API' , field='Host-Name', vault='CI') }}"
-user: "{{ lookup('community.general.onepassword', 'Proxmox API' , field='Benutzername', vault='CI') }}"
-token_id: "{{ lookup('community.general.onepassword', 'Proxmox API' , field='TokenID', vault='CI') }}"
-token_secret: "{{ lookup('community.general.onepassword', 'Proxmox API' , field='Anmeldedaten', vault='CI') }}"
-want_facts: true
-exclude_nodes: true
-filters:
-  - "'ignore-ansible' not in (proxmox_tags_parsed | list)"

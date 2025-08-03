@@ -5,10 +5,6 @@
 
   vars:
     hcloud_token: "{{ lookup('community.general.onepassword', 'Hetzner Cloud API' , field='token', vault='CI') }}"
-   # server_type: cax11
-   # server_image: debian-12
-   # server_location: fsn1
-   # ssh_keys: MBA SSH
 
   vars_prompt:
 

@@ -6,8 +6,4 @@
   tasks:
 
   - debug:
-      msg: "{{ lookup('community.general.onepassword', 'Proxmox API' , field='Benutzername', vault='CI') }}"
-  - debug:
-      msg: "{{ lookup('community.general.onepassword', 'Proxmox API' , field='TokenID', vault='CI') }}"
-  - debug:
-      msg: "{{ lookup('community.general.onepassword', 'Proxmox API' , field='Anmeldedaten', vault='CI') }}"
+      msg: ""
