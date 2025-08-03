@@ -1,9 +1,36 @@
 ---
 - name: Test
-  hosts: localhost
+  hosts: all
   gather_facts: false
+
+  vars:
+    backrest_repo_password: "{{ lookup('community.general.onepassword', 'Backrest Hetzner', field='Anmeldedaten' , vault='CI') }}"
+    AWS_ACCESS_KEY_ID: "{{ lookup('community.general.onepassword', 'S3 - Hetzner', field='Access Key' , vault='CI') }}"
+    AWS_SECRET_ACCESS_KEY: "{{ lookup('community.general.onepassword', 'S3 - Hetzner', field='Secret Key' , vault='CI') }}"
+    server_name: pangolin
+
+  vars_prompt:
+
+    - name: docker
+      prompt: Docker installiert? [True/False]
+      private: false
+      default: True
 
   tasks:
 
-  - debug:
-      msg: ""
+  - name: Erstelle GUID-Strings
+    set_fact:
+      guid1: "{{ lookup('pipe', 'python3 -c \"import secrets; print(secrets.token_hex(32))\"') }}"
+      guid2: "{{ lookup('pipe', 'python3 -c \"import secrets; print(secrets.token_hex(32))\"') }}"
+
+  - name: Backrest Konfigurationsverzeichnis erstellen
+    ansible.builtin.file:
+      path: /root/.config/backrest
+      state: directory
+      mode: '0755'
+
+  - name: Backrest Konfiguration aus Template erzeugen
+    ansible.builtin.template:
+       src: /Users/max/ansible/roles/server-setup/templates/config.json.j2
+       dest: /root/.config/backrest/config.json
+       force: false

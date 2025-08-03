@@ -32,6 +32,12 @@
       default: MBA SSH
       private: false
 
+    - name: docker
+      prompt: Docker installiert? [True/False]
+      private: false
+      default: True
+
+
   tasks:
 
     - name: Lesen Tailscale Node Informationen zu Servernamen
@@ -60,6 +66,8 @@
         name: "{{ created_server.hcloud_server.ipv4_address }}"
         groups: hetzner_single
         ansible_user: root
+        server_name: "{{ server_name }}"
+        docker: "{{ docker }}"
       when: tailscale_ip == ""
 
     - name: Tailscale IP in dynamisches Hostfile aufnehmen
@@ -67,6 +75,8 @@
         name: "{{ tailscale_ip }}"
         groups: hetzner_single
         ansible_user: root
+        server_name: "{{ server_name }}"
+        docker: "{{ docker }}"
       when: tailscale_ip != ""
 
     - name: Auf Start des neuen Servers warten

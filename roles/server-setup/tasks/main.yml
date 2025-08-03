@@ -1,6 +1,12 @@
 #SPDX-License-Identifier: MIT-0
 ---
 # tasks file for server-setup
+- name: Debug
+  debug:
+    msg: "docker {{ docker }}"
+- name: Debug
+  debug:
+    msg: "server_name {{ server_name }}"
 - name: System aktualisieren und bereinigen
   apt:
     update_cache: yes
@@ -111,6 +117,23 @@
   args:
     creates: /usr/local/bin/backrest
 
+- name: Erstelle GUID-Strings
+  set_fact:
+    guid1: "{{ lookup('pipe', 'python3 -c \"import secrets; print(secrets.token_hex(32))\"') }}"
+    guid2: "{{ lookup('pipe', 'python3 -c \"import secrets; print(secrets.token_hex(32))\"') }}"
+
+- name: Backrest Konfigurationsverzeichnis erstellen
+  ansible.builtin.file:
+    path: /root/.config/backrest
+    state: directory
+    mode: '0755'
+
+- name: Backrest Konfiguration aus Template erzeugen
+  ansible.builtin.template:
+     src: templates/config.json.j2
+     dest: /root/.config/backrest/config.json
+     force: false
+
 - name: Wrapper-Skript für Backrest kopieren
   template:
     src: files/backrest-wrapper.sh.j2
@@ -156,6 +179,7 @@
     rm get-docker.sh
   args:
     creates: /usr/bin/docker
+  when: docker == True
 
 - name: RCLONE installieren
   shell: |
