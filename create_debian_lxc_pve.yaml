@@ -8,3 +8,4 @@
     - name: server_name
       prompt: Name des zu erstellenden Servers eingeben
       private: false
+  
