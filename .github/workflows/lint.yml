@@ -39,7 +39,7 @@ jobs:
         run: |
           yamllint --version
           find . -name "*.yml" -o -name "*.yaml" | \
-            xargs yamllint
+            xargs yamllint --config-file .github/.yamllint.yml
 
   yaml-lint:
     name: YAML Lint
@@ -62,4 +62,4 @@ jobs:
       - name: Run yamllint
         run: |
           yamllint --version
-          yamllint .
+          yamllint . --config-file .github/.yamllint.yml
