@@ -1,12 +1,6 @@
 #SPDX-License-Identifier: MIT-0
 ---
 # tasks file for server-setup
-- name: Debug
-  debug:
-    msg: "docker {{ docker }}"
-- name: Debug
-  debug:
-    msg: "server_name {{ server_name }}"
 - name: System aktualisieren und bereinigen
   apt:
     update_cache: yes

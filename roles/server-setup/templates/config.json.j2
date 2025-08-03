@@ -5,7 +5,7 @@
   "repos": [
     {
       "id": "onedrive",
-      "uri": "rclone:onedrive:Hetzner",
+      "uri": "rclone:onedrive:{{ server_name }}",
       "guid": "{{ guid1 }}",
       "password": "{{ backrest_repo_password }}",
       "prunePolicy": {
@@ -26,7 +26,7 @@
     },
     {
       "id": "s3-elcajon",
-      "uri": "s3:fsn1.your-objectstorage.com/elcajon/hetzner",
+      "uri": "s3:fsn1.your-objectstorage.com/elcajon/{{ server_name }}",
       "guid": "{{ guid2 }}",
       "password": "{{ backrest_repo_password }}",
       "env": [
