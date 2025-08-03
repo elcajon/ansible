@@ -46,7 +46,7 @@
       failed_when: false
 
     - name: Speichern der Tailscale IP zur weiteren Verwendung
-      set_fact: 
+      set_fact:
         tailscale_ip: "{{ tailscale_info.stdout }}"
 
     - name: Erstelle Hetzner-Server per API

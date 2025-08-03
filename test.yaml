@@ -31,6 +31,6 @@
 
   - name: Backrest Konfiguration aus Template erzeugen
     ansible.builtin.template:
-       src: /Users/max/ansible/roles/server-setup/templates/config.json.j2
-       dest: /root/.config/backrest/config.json
-       force: false
+      src: /Users/max/ansible/roles/server-setup/templates/config.json.j2
+      dest: /root/.config/backrest/config.json
+      force: false
