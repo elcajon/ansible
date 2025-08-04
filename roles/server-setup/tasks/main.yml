@@ -29,9 +29,15 @@
     regexp: "{{ item.regexp }}"
     line: "{{ item.line }}"
   loop:
-    - { regexp: '^#?PermitRootLogin.*', line: 'PermitRootLogin prohibit-password' }
-    - { regexp: '^#AddressFamily any', line: 'AddressFamily inet' }
-    - { regexp: '^#PasswordAuthentication yes', line: 'PasswordAuthentication no' }
+    - {
+        regexp: "^#?PermitRootLogin.*",
+        line: "PermitRootLogin prohibit-password",
+      }
+    - { regexp: "^#AddressFamily any", line: "AddressFamily inet" }
+    - {
+        regexp: "^#PasswordAuthentication yes",
+        line: "PasswordAuthentication no",
+      }
 
 - name: SSH neu starten
   systemd:
@@ -44,6 +50,7 @@
     name: ssh
     state: stopped
     enabled: false
+  when: tailscale == True
 
 - name: ZSH als Standard-Shell setzen
   user:
@@ -89,7 +96,7 @@
     dest: /etc/apt/apt.conf.d/50unattended-upgrades
     owner: root
     group: root
-    mode: '0755'
+    mode: "0755"
 
 - name: Unattended-Upgrades aktivieren
   debconf:
@@ -110,23 +117,27 @@
     /tmp/install.sh
   args:
     creates: /usr/local/bin/backrest
+  when: backrest == True
 
 - name: Erstelle GUID-Strings
   set_fact:
-    guid1: "{{ lookup('pipe', 'python3 -c \"import secrets; print(secrets.token_hex(32))\"') }}"
-    guid2: "{{ lookup('pipe', 'python3 -c \"import secrets; print(secrets.token_hex(32))\"') }}"
+    guid1: '{{ lookup(''pipe'', ''python3 -c "import secrets; print(secrets.token_hex(32))"'') }}'
+    guid2: '{{ lookup(''pipe'', ''python3 -c "import secrets; print(secrets.token_hex(32))"'') }}'
+  when: backrest == True
 
 - name: Backrest Konfigurationsverzeichnis erstellen
   ansible.builtin.file:
     path: /root/.config/backrest
     state: directory
-    mode: '0755'
+    mode: "0755"
+  when: backrest == True
 
 - name: Backrest Konfiguration aus Template erzeugen
   ansible.builtin.template:
     src: templates/config.json.j2
     dest: /root/.config/backrest/config.json
     force: false
+  when: backrest == True
 
 - name: Wrapper-Skript für Backrest kopieren
   template:
@@ -134,7 +145,8 @@
     dest: /usr/local/bin/backrest-wrapper.sh
     owner: root
     group: root
-    mode: '0755'
+    mode: "0755"
+  when: backrest == True
 
 - name: Systemd Service Datei für Backrest kopieren
   template:
@@ -146,19 +158,19 @@
   notify:
     - Reload systemd
     - Restart backrest
-
+  when: backrest == True
 
 - name: Zeitzone setzen
   timezone:
     name: "{{ timezone }}"
 
-- name: HTOP Config Verzeichnis erstellen
+- name: HTop Config Verzeichnis erstellen
   ansible.builtin.file:
     path: /root/.config/htop
     state: directory
-    mode: '0755'
+    mode: "0755"
 
-- name: Systemd Service Datei für Backrest kopieren
+- name: Systemd Service Datei für HTop kopieren
   template:
     src: files/htoprc
     dest: /root/.config/htop/htoprc
@@ -185,7 +197,7 @@
   ansible.builtin.file:
     path: /root/.config/rclone
     state: directory
-    mode: '0755'
+    mode: "0755"
 
 - name: RCLONE-Konfiguration anlegen
   copy:

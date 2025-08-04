@@ -7,7 +7,6 @@
     hcloud_token: "{{ lookup('community.general.onepassword', 'Hetzner Cloud API' , field='token', vault='CI') }}"
 
   vars_prompt:
-
     - name: server_name
       prompt: Name des zu erstellenden Servers eingeben
       private: false
@@ -37,9 +36,17 @@
       private: false
       default: True
 
+    - name: backrest
+      prompt: Backrest installiert? [True/False]
+      private: false
+      default: True
+
+    - name: tailscale
+      prompt: Tailscale installiert? [True/False]
+      private: false
+      default: True
 
   tasks:
-
     - name: Lesen Tailscale Node Informationen zu Servernamen
       command: "tailscale ip -4 {{ server_name }} "
       register: tailscale_info
@@ -68,6 +75,8 @@
         ansible_user: root
         server_name: "{{ server_name }}"
         docker: "{{ docker }}"
+        backrest: "{{ backrest }}"
+        tailscale: "{{ tailscale }}"
       when: tailscale_ip == ""
 
     - name: Tailscale IP in dynamisches Hostfile aufnehmen
@@ -77,6 +86,8 @@
         ansible_user: root
         server_name: "{{ server_name }}"
         docker: "{{ docker }}"
+        backrest: "{{ backrest }}"
+        tailscale: "{{ tailscale }}"
       when: tailscale_ip != ""
 
     - name: Auf Start des neuen Servers warten
@@ -107,7 +118,7 @@
       vars:
         tailscale_authkey: "{{ tailscale_token }}"
         tailscale_args: "--ssh --accept-dns=false --accept-routes=false --advertise-exit-node"
-      when: tailscale_running.rc != 0
+      when: tailscale_running.rc != 0 and tailscale == True
 
     - name: Run Server Setup
       include_role:
