@@ -21,7 +21,17 @@
       - wget
       - git
       - zsh
+      - unzip
+      - net-tools
     state: present
+
+- name: Nicht benötigte Pakete deinstallieren
+  apt:
+    name:
+      - postfix
+    state: absent
+    purge: yes
+    autoremove: yes
 
 - name: SSH Hardening
   lineinfile:
@@ -47,9 +57,12 @@
 
 - name: SSH deaktivieren (Login nur über Tailscale)
   systemd:
-    name: ssh
+    name: "{{ item }}"
     state: stopped
     enabled: false
+  loop:
+    - ssh.service
+    - ssh.socket
   when: tailscale == True
 
 - name: ZSH als Standard-Shell setzen
@@ -108,12 +121,18 @@
 - name: Unattended-Upgrades konfigurieren
   command: dpkg-reconfigure -f noninteractive unattended-upgrades
 
+- name: Host Architektur bestimmen
+  set_fact:
+    detected_arch: >-
+      {{ 'arm64' if ansible_architecture == 'aarch64'
+         else ansible_architecture }}
+
 - name: Backrest herunterladen und installieren
   shell: |
     curl -s https://api.github.com/repos/garethgeorge/backrest/releases/latest | \
-      grep "browser_download_url" | grep "Linux_arm64.tar.gz" | cut -d '"' -f 4 | xargs curl -LO
-    tar -xzf backrest_Linux_arm64.tar.gz -C /tmp
-    rm backrest_Linux_arm64.tar.gz
+      grep "browser_download_url" | grep "Linux_{{ detected_arch }}.tar.gz" | cut -d '"' -f 4 | xargs curl -LO
+    tar -xzf backrest_Linux_{{ detected_arch }}.tar.gz -C /tmp
+    rm backrest_Linux_{{ detected_arch }}.tar.gz
     /tmp/install.sh
   args:
     creates: /usr/local/bin/backrest
@@ -214,3 +233,6 @@
     - /root/.bashrc
     - /root/.profile
     - /root/.wget-hsts
+
+- name: Inhalt von /tmp leeren
+  ansible.builtin.shell: rm -rf /tmp/*
