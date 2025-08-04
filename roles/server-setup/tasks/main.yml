@@ -32,6 +32,7 @@
     state: absent
     purge: yes
     autoremove: yes
+  ignore_errors: true
 
 - name: SSH Hardening
   lineinfile:
