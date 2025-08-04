@@ -156,14 +156,14 @@
     - name: PermitRootLogin in sshd_config im LXC-Container anpassen (Workaround)
       shell: |
         ssh root@{{ proxmox_host }} "
-        lxc-attach -n 101 -- sed -i 's/^#PermitRootLogin.*/PermitRootLogin prohibit-password/' /etc/ssh/sshd_config
+        lxc-attach -n {{ vmid }} -- sed -i 's/^#PermitRootLogin.*/PermitRootLogin prohibit-password/' /etc/ssh/sshd_config
         "
       when: tailscale_ip == ""
 
     - name: SSH Service im LXC-Container neu starten (Workaround)
       shell: |
         ssh root@{{ proxmox_host }} "
-        lxc-attach -n 101 -- systemctl restart ssh
+        lxc-attach -n {{ vmid }} -- systemctl restart ssh
         "
       when: tailscale_ip == ""
 
