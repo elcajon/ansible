@@ -16,7 +16,7 @@
       private: false
       default: "docker"
 
-    - name: lxc_password
+    - name: lxc_pw
       prompt: Passwort für den root User eingeben
       private: true
 
@@ -65,7 +65,7 @@
         server_ip: "{{ network_ip_mask.split('/')[0] }}"
 
     - name: Neuen LXC Server erstellen
-      community.general.proxmox:
+      community.proxmox.proxmox:
         node: proxmox
         api_user: "{{ proxmox_user }}"
         api_host: "{{ proxmox_host }}"
@@ -84,7 +84,7 @@
         nameserver: "{{ network_dns }}"
         onboot: 1
         hostname: "{{ server_name }}"
-        password: "{{ lxc_password }}"
+        password: "{{ lxc_pw }}"
         ostemplate: "local:vztmpl/debian-12-standard_12.7-1_amd64.tar.zst"
         timezone: host
         unprivileged: true
@@ -112,7 +112,7 @@
       when: tailscale_ip == "" and tailscale == "True"
 
     - name: Neuen LXC Server starten
-      community.general.proxmox:
+      community.proxmox.proxmox:
         node: proxmox
         api_user: "{{ proxmox_user }}"
         api_host: "{{ proxmox_host }}"
