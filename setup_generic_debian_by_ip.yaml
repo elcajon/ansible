@@ -23,6 +23,11 @@
       private: false
       default: True
 
+    - name: proxmox
+      prompt: Proxmox Server? [True/False]
+      private: false
+      default: False
+
   tasks:
     - name: Lesen Tailscale Node Informationen zu Servernamen
       command: "tailscale ip -4 {{ server_name }} "
@@ -42,6 +47,7 @@
         docker: "{{ docker }}"
         backrest: "{{ backrest }}"
         tailscale: "{{ tailscale }}"
+        proxmox: "{{ proxmox }}"
       when: tailscale_ip == ""
 
     - name: Tailscale IP in dynamisches Hostfile aufnehmen
@@ -53,6 +59,7 @@
         docker: "{{ docker }}"
         backrest: "{{ backrest }}"
         tailscale: "{{ tailscale }}"
+        proxmox: "{{ proxmox }}"
       when: tailscale_ip != ""
 
     - name: Auf Erreichbarkeit des Servers warten
@@ -88,3 +95,8 @@
     - name: Run Server Setup
       include_role:
         name: server-setup
+
+    - name: Run Proxmox Setup
+      include_role:
+        name: proxmox-setup
+      when: proxmox == True
