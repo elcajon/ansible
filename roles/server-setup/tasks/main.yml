@@ -93,15 +93,9 @@
     regexp: "{{ item.regexp }}"
     line: "{{ item.line }}"
   loop:
-    - {
-        regexp: "^#?PermitRootLogin.*",
-        line: "PermitRootLogin prohibit-password",
-      }
+    - { regexp: "^#?PermitRootLogin.*", line: "PermitRootLogin prohibit-password" }
     - { regexp: "^#AddressFamily any", line: "AddressFamily inet" }
-    - {
-        regexp: "^#PasswordAuthentication yes",
-        line: "PasswordAuthentication no",
-      }
+    - { regexp: "^#PasswordAuthentication yes", line: "PasswordAuthentication no" }
 
 - name: SSH neu starten
   systemd:
