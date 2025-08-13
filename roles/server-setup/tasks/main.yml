@@ -29,10 +29,63 @@
   apt:
     name:
       - postfix
+      - exim4-base
     state: absent
     purge: yes
     autoremove: yes
   ignore_errors: true
+
+# Start Workaround Trixie Update >>>
+
+- name: Hauptquellen-Datei auf trixie anpassen
+  ansible.builtin.replace:
+    path: /etc/apt/sources.list
+    regexp: 'bookworm'
+    replace: 'trixie'
+
+- name: Prüfen, ob /etc/apt/sources.list.d existiert
+  ansible.builtin.stat:
+    path: /etc/apt/sources.list.d
+  register: sources_d
+
+- name: Alle .list-Dateien in sources.list.d sammeln (nur wenn vorhanden)
+  ansible.builtin.find:
+    paths: /etc/apt/sources.list.d
+    patterns: "*.list"
+    file_type: file
+  when: sources_d.stat.exists
+  register: list_files
+  become: true
+
+- name: Zusätzliche Quellen (sources.list.d) anpassen
+  ansible.builtin.replace:
+    path: "{{ item.path }}"
+    regexp: 'bookworm'
+    replace: 'trixie'
+  loop: "{{ list_files.files | default([]) }}"
+  when: sources_d.stat.exists
+  become: true
+
+- name: Paketlisten aktualisieren
+  ansible.builtin.apt:
+    update_cache: yes
+
+- name: Distribution Upgrade durchführen
+  ansible.builtin.apt:
+    upgrade: dist
+    autoremove: no
+
+- name: Unbenutzte Pakete entfernen (I)
+  ansible.builtin.apt:
+    autoremove: yes
+    autoclean: yes
+ 
+- name: Unbenutzte Pakete entfernen (II)
+  ansible.builtin.apt:
+    autoremove: yes
+    purge: yes
+
+# End Workaround Trixie Update <<<
 
 - name: SSH Hardening
   lineinfile:
