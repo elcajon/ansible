@@ -48,7 +48,7 @@
 
   tasks:
     - name: Lesen Tailscale Node Informationen zu Servernamen
-      command: "tailscale ip -4 {{ server_name }} "
+      command: " tailscale ip -4 {{ server_name }} "
       register: tailscale_info
       failed_when: false
 
