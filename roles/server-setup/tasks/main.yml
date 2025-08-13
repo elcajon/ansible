@@ -79,7 +79,7 @@
   ansible.builtin.apt:
     autoremove: yes
     autoclean: yes
- 
+
 - name: Unbenutzte Pakete entfernen (II)
   ansible.builtin.apt:
     autoremove: yes
