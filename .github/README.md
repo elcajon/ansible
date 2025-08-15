@@ -10,6 +10,7 @@ This repository contains Ansible playbooks and roles for automated server provis
 ├── create_debian_lxc_pve.yaml   # Playbook for creating Debian LXC containers on Proxmox VE
 ├── test.yaml                    # Test playbook for server configuration
 ├── roles/
+│   ├── proxmox-setup/           # Role for Proxmox server configuration
 │   └── server-setup/            # Role for server configuration and setup
 │       ├── tasks/
 │       ├── defaults/
@@ -45,9 +46,10 @@ ansible-playbook create_hetzner.yaml
 ```
 
 The playbook will prompt you for the following information:
+
 - **Server Name**: Name for the new server
 - **Server Type**: Instance type (default: cax11)
-- **Server Image**: OS image (default: debian-12)
+- **Server Image**: OS image (default: debian-13)
 - **Server Location**: Data center location (default: fsn1)
 - **SSH Keys**: SSH key name from your Hetzner Cloud project (default: MBA SSH)
 - **Docker**: Whether to install Docker (default: True)
@@ -57,7 +59,7 @@ The playbook will prompt you for the following information:
 ```
 Name des zu erstellenden Servers eingeben: my-server
 Server Type des zu erstellenden Servers eingeben [cax11]: 
-Server Image des zu erstellenden Servers eingeben [debian-12]: 
+Server Image des zu erstellenden Servers eingeben [debian-13]: 
 Server Location des zu erstellenden Servers eingeben [fsn1]: 
 SSH Key Name des zu erstellenden Servers eingeben [MBA SSH]: 
 Docker installiert? [True/False] [True]: 
@@ -66,29 +68,39 @@ Docker installiert? [True/False] [True]:
 ### Additional Playbooks
 
 #### create_debian_lxc_pve.yaml
-Creates Debian LXC containers on Proxmox VE infrastructure.
+
+This playbook creates Debian LXC containers on Proxmox VE infrastructure.
 
 #### test.yaml
-Test playbook for validating server configurations and backup setups.
+
+A test playbook for validating server configurations and backup setups.
 
 ## Roles
 
 ### server-setup
+
 A comprehensive role that handles:
+
 - Initial server configuration
 - Software installation and updates
 - Security hardening
 - Service configuration
 - Backup setup with pgbackrest
 
+### proxmox-setup
+
+A specialized role for configuring Proxmox servers and containers.
+
 ## Dependencies
 
 This repository requires the following Ansible collections:
+
 - `hetzner.hcloud` - For Hetzner Cloud API integration
 - `community.general` - For OnePassword lookups and general utilities
 - `artis3n.tailscale` - For Tailscale VPN setup
 
 Install dependencies with:
+
 ```bash
 ansible-galaxy collection install hetzner.hcloud community.general
 ansible-galaxy install artis3n.tailscale
