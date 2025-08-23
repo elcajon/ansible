@@ -18,7 +18,7 @@
 
     - name: server_image
       prompt: Server Image des zu erstellenden Servers eingeben
-      default: debian-12
+      default: debian-13
       private: false
 
     - name: server_location
