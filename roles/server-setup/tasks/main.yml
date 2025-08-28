@@ -136,8 +136,6 @@
     tar -xzf backrest_Linux_{{ detected_arch }}.tar.gz -C /tmp
     rm backrest_Linux_{{ detected_arch }}.tar.gz
     /tmp/install.sh
-  args:
-    creates: /usr/local/bin/backrest
   when: backrest == True
 
 - name: Erstelle GUID-Strings
@@ -180,6 +178,15 @@
     - Reload systemd
     - Restart backrest
   when: backrest == True
+
+- name: Update/Installations-Skript für Newt kopieren
+  template:
+    src: files/newt_update
+    dest: /etc/cron.daily/newt_update
+    owner: root
+    group: root
+    mode: "0755"
+  when: newt == True
 
 - name: Zeitzone setzen
   timezone:

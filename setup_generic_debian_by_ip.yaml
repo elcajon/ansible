@@ -23,6 +23,11 @@
       private: false
       default: True
 
+    - name: newt
+      prompt: Newt installiert? [True/False]
+      private: false
+      default: False
+
     - name: proxmox
       prompt: Proxmox Server? [True/False]
       private: false
@@ -47,6 +52,7 @@
         docker: "{{ docker }}"
         backrest: "{{ backrest }}"
         tailscale: "{{ tailscale }}"
+        newt: "{{ newt }}"
         proxmox: "{{ proxmox }}"
       when: tailscale_ip == ""
 
@@ -59,6 +65,7 @@
         docker: "{{ docker }}"
         backrest: "{{ backrest }}"
         tailscale: "{{ tailscale }}"
+        newt: "{{ newt }}"
         proxmox: "{{ proxmox }}"
       when: tailscale_ip != ""
 

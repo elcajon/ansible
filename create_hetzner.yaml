@@ -46,6 +46,11 @@
       private: false
       default: True
 
+    - name: newt
+      prompt: Newt installiert? [True/False]
+      private: false
+      default: False
+
   tasks:
     - name: Lesen Tailscale Node Informationen zu Servernamen
       command: " tailscale ip -4 {{ server_name }} "
@@ -77,6 +82,7 @@
         docker: "{{ docker }}"
         backrest: "{{ backrest }}"
         tailscale: "{{ tailscale }}"
+        newt: "{{ newt }}"
       when: tailscale_ip == ""
 
     - name: Tailscale IP in dynamisches Hostfile aufnehmen
@@ -88,6 +94,7 @@
         docker: "{{ docker }}"
         backrest: "{{ backrest }}"
         tailscale: "{{ tailscale }}"
+        newt: "{{ newt }}"
       when: tailscale_ip != ""
 
     - name: Auf Start des neuen Servers warten
