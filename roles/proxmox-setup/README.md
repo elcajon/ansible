@@ -1,19 +1,19 @@
 # Proxmox Setup Role
 
-Diese Rolle führt spezifische Konfigurationen für einen Proxmox-Server durch.
+This role performs specific configurations for a Proxmox server.
 
-## Funktionen
+## Features
 
-- Aktiviert IPv6 (deaktiviert die IPv6-Deaktivierung)
-- Lädt nützliche Community-Skripte für Proxmox herunter:
-  - Home Assistant OS VM Erstellungsskript
-  - Post-Proxmox-Installation-Optimierungsskript
+- Enables IPv6 (disables the IPv6 deactivation)
+- Downloads useful community scripts for Proxmox:
+  - Home Assistant OS VM creation script
+  - Post-Proxmox-installation optimization script
 
-## Variablen
+## Variables
 
-Diese Rolle verwendet aktuell keine konfigurierbaren Variablen.
+This role currently does not use any configurable variables.
 
-## Beispiel
+## Example
 
 ```yaml
 - hosts: proxmox_hosts
@@ -21,15 +21,15 @@ Diese Rolle verwendet aktuell keine konfigurierbaren Variablen.
     - role: proxmox-setup
 ```
 
-## Abhängigkeiten
+## Dependencies
 
-Diese Rolle hat keine externen Abhängigkeiten.
+This role has no external dependencies.
 
-## Hinweis
+## Notes
 
-Die heruntergeladenen Skripte stammen aus dem Community-Scripts Repository für Proxmox und ermöglichen:
+The downloaded scripts come from the Community Scripts repository for Proxmox and enable:
 
-1. `ha-install.sh`: Einfache Installation von Home Assistant OS als VM
-2. `post-pve-install.sh`: Optimierung einer frischen Proxmox-Installation
+1. `ha-install.sh`: Easy installation of Home Assistant OS as a VM
+2. `post-pve-install.sh`: Optimization of a fresh Proxmox installation
 
-Die Skripte werden nach `/root/` heruntergeladen und mit Ausführungsrechten versehen, müssen aber manuell ausgeführt werden.
+The scripts are downloaded to `/root/` and provided with execution rights, but must be executed manually.

@@ -1,23 +1,23 @@
 # Base System Role
 
-Diese Rolle führt grundlegende Systemkonfigurationen auf einem Debian-basierten Server durch.
+This role performs basic system configurations on a Debian-based server.
 
-## Funktionen
+## Features
 
-- System aktualisieren und bereinigen
-- Benötigte Basispakete installieren
-- Nicht benötigte Pakete deinstallieren
-- Zeitzone setzen
-- Aufräumen diverser Dateien
-- /tmp Verzeichnis leeren
+- Update and clean the system
+- Install required base packages
+- Uninstall unnecessary packages
+- Set timezone
+- Clean up various files
+- Empty /tmp directory
 
-## Variablen
+## Variables
 
-| Variable | Standardwert | Beschreibung |
-|----------|--------------|--------------|
-| system_timezone | Europe/Berlin | Die zu setzende Zeitzone |
+| Variable | Default Value | Description |
+|----------|---------------|-------------|
+| system_timezone | Europe/Berlin | The timezone to be set |
 
-## Beispiel
+## Example
 
 ```yaml
 - hosts: all
@@ -26,6 +26,6 @@ Diese Rolle führt grundlegende Systemkonfigurationen auf einem Debian-basierten
       system_timezone: "Europe/Vienna"
 ```
 
-## Abhängigkeiten
+## Dependencies
 
-Diese Rolle hat keine externen Abhängigkeiten.
+This role has no external dependencies.
