@@ -1,46 +1,55 @@
 ---
-name: Test
+name: CI
 
 on:
   pull_request:
     branches: ["main"]
   push:
     branches-ignore: ["main"]
+  workflow_dispatch:
 
 jobs:
-  syntax-check:
-    name: Ansible Syntax Check
+  lint-and-syntax:
+    name: Lint & Syntax Check (Ansible ${{ matrix.ansible-version }})
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: true
       matrix:
         ansible-version: ["2.16", "2.17"]
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v5
+        uses: actions/checkout@v4
 
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.13"
+          python-version: "3.11"
 
-      - name: Install Ansible
+      - name: Install Ansible, ansible-lint, yamllint
         run: |
           python -m pip install --upgrade pip
           pip install ansible-core~=${{ matrix.ansible-version }}.0
+          pip install ansible-lint yamllint
 
       - name: Install required Ansible collections
         run: |
-          ansible-galaxy collection install community.general \
-            hetzner.hcloud \
-            community.proxmox
-          ansible-galaxy install artis3n.tailscale
+          ansible-galaxy collection install -r requirements.yaml
+
+      - name: Run ansible-lint
+        run: |
+          ansible-lint --version
+          ansible-lint .
+
+      - name: Run yamllint on YAML files
+        run: |
+          yamllint --version
+          yamllint . --config-file .github/.yamllint.yml
 
       - name: Syntax check main playbooks
         run: |
           ansible --version
-          for playbook in create_hetzner.yaml create_debian_lxc_pve.yaml \
-                           test.yaml; do
+          for playbook in playbooks/*.yaml; do
             if [ -f "$playbook" ]; then
               echo "Checking syntax for: $playbook"
               ansible-playbook --syntax-check "$playbook"

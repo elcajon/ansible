@@ -1,5 +1,5 @@
 ---
-name: Security Scan
+name: Security
 
 on:
   pull_request:
@@ -9,18 +9,18 @@ on:
   schedule:
     # Run weekly on Sundays at 2 AM UTC
     - cron: '0 2 * * 0'
+  workflow_dispatch:
 
 jobs:
   secret-scan:
-    name: Secret Detection
+    name: Secret Scan (TruffleHog)
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v5
+        uses: actions/checkout@v4
         with:
-          # Fetch full history for better secret detection
-          fetch-depth: 0
+          fetch-depth: 0  # Full history for secret scanning
 
       - name: Run TruffleHog OSS
         uses: trufflesecurity/trufflehog@main
@@ -30,14 +30,14 @@ jobs:
           path: .
           extra_args: --debug --only-verified
 
-  onepassword-secret-validation:
+  onepassword-validation:
     name: 1Password Secret Validation
     runs-on: ubuntu-latest
-    if: github.event_name == 'pull_request'
+    if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch'
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v5
+        uses: actions/checkout@v4
 
       - name: Install 1Password CLI
         uses: 1password/install-cli-action@v2
@@ -45,7 +45,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.13'
+          python-version: '3.11'
 
       - name: Install PyYAML
         run: |
@@ -68,13 +68,10 @@ jobs:
               try:
                   with open(file_path, 'r') as f:
                       content = f.read()
-
-                  # Pattern to match 1Password lookups
                   pattern = (r"lookup\(\s*['\"]community\.general\."
-                            r"onepassword['\"],\s*['\"]([^'\"]+)['\"].*?"
-                            r"vault\s*=\s*['\"]([^'\"]+)['\"]")
+                             r"onepassword['\"],\s*['\"]([^'\"]+)['\"].*?"
+                             r"vault\s*=\s*['\"]([^'\"]+)['\"]")
                   matches = re.findall(pattern, content)
-
                   return [(item, vault) for item, vault in matches]
               except Exception as e:
                   print(f"Error reading {file_path}: {e}")
@@ -83,33 +80,20 @@ jobs:
           def validate_onepassword_reference(item, vault):
               """Validate that a 1Password reference exists"""
               try:
-                  # Check if OP_SERVICE_ACCOUNT_TOKEN is available
                   if not os.getenv('OP_SERVICE_ACCOUNT_TOKEN'):
-                      warning_msg = ("Warning: OP_SERVICE_ACCOUNT_TOKEN "
-                                   "not available, skipping validation")
-                      print(warning_msg)
+                      print("Warning: OP_SERVICE_ACCOUNT_TOKEN not available, skipping validation")
                       return True
-
-                  # Try to get the item from 1Password
-                  cmd = ['op', 'item', 'get', item, '--vault', vault,
-                         '--format', 'json']
+                  cmd = ['op', 'item', 'get', item, '--vault', vault, '--format', 'json']
                   result = subprocess.run(cmd, capture_output=True, text=True)
-
                   if result.returncode == 0:
-                      msg = (f"✓ 1Password reference valid: '{item}' "
-                            f"in vault '{vault}'")
-                      print(msg)
+                      print(f"✓ 1Password reference valid: '{item}' in vault '{vault}'")
                       return True
                   else:
                       error_msg = result.stderr.strip()
-                      msg = (f"✗ 1Password reference invalid: '{item}' "
-                            f"in vault '{vault}' - {error_msg}")
-                      print(msg)
+                      print(f"✗ 1Password reference invalid: '{item}' in vault '{vault}' - {error_msg}")
                       return False
               except Exception as e:
-                  error_msg = (f"Error validating 1Password reference "
-                              f"'{item}' in vault '{vault}': {e}")
-                  print(error_msg)
+                  print(f"Error validating 1Password reference '{item}' in vault '{vault}': {e}")
                   return False
 
           def check_hardcoded_secrets(file_path):
@@ -117,40 +101,28 @@ jobs:
               try:
                   with open(file_path, 'r') as f:
                       content = f.read()
-
-                  # Patterns for common secret formats
                   secret_patterns = [
-                      (r'password\s*:\s*["\'][^"\']{8,}["\']',
-                       'Potential hardcoded password'),
-                      (r'token\s*:\s*["\'][A-Za-z0-9+/]{20,}["\']',
-                       'Potential hardcoded token'),
-                      (r'key\s*:\s*["\'][A-Za-z0-9+/]{20,}["\']',
-                       'Potential hardcoded key'),
-                      (r'secret\s*:\s*["\'][A-Za-z0-9+/]{20,}["\']',
-                       'Potential hardcoded secret'),
+                      (r'password\s*:\s*["\'][^"\']{8,}["\']', 'Potential hardcoded password'),
+                      (r'token\s*:\s*["\'][A-Za-z0-9+/]{20,}["\']', 'Potential hardcoded token'),
+                      (r'key\s*:\s*["\'][A-Za-z0-9+/]{20,}["\']', 'Potential hardcoded key'),
+                      (r'secret\s*:\s*["\'][A-Za-z0-9+/]{20,}["\']', 'Potential hardcoded secret'),
                   ]
-
                   issues = []
                   for pattern, description in secret_patterns:
                       matches = re.finditer(pattern, content, re.IGNORECASE)
                       for match in matches:
-                          # Skip if it's a 1Password lookup
                           if 'lookup(' in match.group(0):
                               continue
-                          # Skip if it's a Jinja template variable
                           if '{{' in match.group(0) and '}}' in match.group(0):
                               continue
                           issues.append(f"{description}: {match.group(0)}")
-
                   return issues
               except Exception as e:
                   print(f"Error checking {file_path}: {e}")
                   return []
 
-          # Find all YAML files
           yaml_files = []
           for root, dirs, files in os.walk('.'):
-              # Skip .git directory
               if '.git' in root:
                   continue
               for file in files:
@@ -158,15 +130,12 @@ jobs:
                       yaml_files.append(os.path.join(root, file))
 
           file_count = len(yaml_files)
-          print(f"Scanning {file_count} YAML files for 1Password "
-                f"references and secrets...")
+          print(f"Scanning {file_count} YAML files for 1Password references and secrets...")
 
           validation_failed = False
 
           for yaml_file in yaml_files:
               print(f"\nScanning: {yaml_file}")
-
-              # Check for hardcoded secrets
               secret_issues = check_hardcoded_secrets(yaml_file)
               if secret_issues:
                   print(f"⚠️  Potential security issues in {yaml_file}:")
@@ -174,7 +143,6 @@ jobs:
                       print(f"    {issue}")
                   validation_failed = True
 
-              # Validate 1Password lookups
               lookups = find_onepassword_lookups(yaml_file)
               if lookups:
                   lookup_count = len(lookups)
@@ -191,7 +159,7 @@ jobs:
           EOF
 
   codeql-analysis:
-    name: CodeQL Analysis
+    name: CodeQL Analysis (Python)
     runs-on: ubuntu-latest
     permissions:
       actions: read
@@ -200,7 +168,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v5
+        uses: actions/checkout@v4
 
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v3

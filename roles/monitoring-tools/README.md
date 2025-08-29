@@ -1,16 +1,16 @@
 # Monitoring Tools Role
 
-Diese Rolle installiert und konfiguriert verschiedene Monitoring-Tools auf einem Debian-basierten Server.
+This role installs and configures various monitoring tools on a Debian-based server.
 
-## Funktionen
+## Features
 
-- Konfiguration von HTop für verbesserte Systemüberwachung
+- Configuration of HTop for improved system monitoring
 
-## Variablen
+## Variables
 
-Diese Rolle verwendet aktuell keine konfigurierbaren Variablen.
+This role currently does not use any configurable variables.
 
-## Beispiel
+## Example
 
 ```yaml
 - hosts: all
@@ -18,11 +18,11 @@ Diese Rolle verwendet aktuell keine konfigurierbaren Variablen.
     - role: monitoring-tools
 ```
 
-## Abhängigkeiten
+## Dependencies
 
-Diese Rolle setzt voraus, dass HTop auf dem System installiert ist. Es wird empfohlen, die `base-system` Rolle vor dieser Rolle auszuführen, da diese HTop installiert.
+This role assumes that HTop is installed on the system. It is recommended to run the `base-system` role before this role, as it installs HTop.
 
-## Hinweis
+## Notes
 
-- Die Rolle konfiguriert HTop mit einer optimierten Konfiguration für eine verbesserte Systemüberwachung.
-- Es wird ein Konfigurationsverzeichnis für HTop erstellt und eine vorkonfigurierte HTop-Konfiguration bereitgestellt.
+- The role configures HTop with an optimized configuration for improved system monitoring.
+- A configuration directory for HTop is created and a preconfigured HTop configuration is provided.
