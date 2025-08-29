@@ -1,0 +1,29 @@
+#SPDX-License-Identifier: MIT-0
+---
+# tasks file for shell-config
+- name: ZSH als Standard-Shell setzen
+  user:
+    name: root
+    shell: /usr/bin/zsh
+
+- name: Oh-My-Zsh installieren (root)
+  shell: |
+    rm -rf /root/.oh-my-zsh
+    wget -q https://github.com/robbyrussell/oh-my-zsh/raw/master/tools/install.sh -O - | zsh
+  args:
+    creates: /root/.oh-my-zsh
+
+- name: ZSH Theme anpassen
+  lineinfile:
+    path: /root/.zshrc
+    regexp: '^ZSH_THEME="robbyrussell"'
+    line: 'ZSH_THEME="maran"'
+
+- name: ZSH Aliases und Updates
+  blockinfile:
+    path: /root/.zshrc
+    block: |
+      alias update='apt update && apt upgrade -y && apt dist-upgrade -y && apt autoclean -y && apt autoremove -y && apt purge -y'
+      ZSH_THEME="maran"
+      zstyle ':omz:update' mode auto
+      zstyle ':omz:update' verbose minimal

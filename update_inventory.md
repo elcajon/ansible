@@ -1,0 +1,1 @@
+playbooks/README_update_inventory.md

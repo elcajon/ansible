@@ -1,0 +1,7 @@
+#SPDX-License-Identifier: MIT-0
+---
+# defaults file for backup-tools
+install_backrest: False
+rclone_config: ""
+backrest_server_name: "localhost"
+install_docker: False

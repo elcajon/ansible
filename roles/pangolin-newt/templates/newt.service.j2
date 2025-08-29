@@ -1,0 +1,11 @@
+[Unit]
+Description=Newt VPN Client
+After=network.target
+
+[Service]
+ExecStart=/usr/local/bin/newt --id {{ site_defaults.data.newtId }} --secret {{ site_defaults.data.newtSecret }} --endpoint https://{{ site_defaults.data.endpoint }}
+Restart=always
+User=root
+
+[Install]
+WantedBy=multi-user.target

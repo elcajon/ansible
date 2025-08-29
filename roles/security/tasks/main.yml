@@ -1,0 +1,74 @@
+#SPDX-License-Identifier: MIT-0
+---
+# tasks file for security
+# Diese Datei enthält alle Aufgaben zur Absicherung des Systems
+- name: SSH Hardening
+  # Konfiguriert die SSH-Einstellungen für erhöhte Sicherheit
+  lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: "{{ item.regexp }}"
+    line: "{{ item.line }}"
+  loop:
+    - {
+        regexp: "^#?PermitRootLogin.*",
+        line: "PermitRootLogin prohibit-password", # Nur SSH-Key-Authentifizierung für Root erlauben
+      }
+    - { regexp: "^#AddressFamily any", line: "AddressFamily inet" } # Nur IPv4 für SSH verwenden
+    - {
+        regexp: "^#PasswordAuthentication yes",
+        line: "PasswordAuthentication no", # Passwort-Authentifizierung deaktivieren
+      }
+
+- name: SSH neu starten
+  # SSH-Dienst neu starten, um die Konfigurationsänderungen zu übernehmen
+  systemd:
+    name: sshd
+    state: restarted
+  ignore_errors: true # Fehler ignorieren, falls SSH nicht installiert ist
+
+- name: SSH deaktivieren (Login nur über Tailscale)
+  # Deaktiviert den SSH-Dienst, wenn der Server nur über Tailscale erreichbar sein soll
+  # Dies erhöht die Sicherheit, da kein SSH-Zugriff vom öffentlichen Internet möglich ist
+  systemd:
+    name: "{{ item }}"
+    state: stopped
+    enabled: false
+  loop:
+    - ssh.service
+    - ssh.socket
+  when: disable_ssh_for_tailscale | default(False)
+
+- name: IPv4 & IPv6 Forwarding aktivieren
+  # Aktiviert IP-Forwarding für IPv4 und IPv6
+  # Notwendig für Routing-Funktionen, VPN-Server und Container-Netzwerke
+  sysctl:
+    name: "{{ item }}"
+    value: 1
+    sysctl_set: yes
+    state: present
+    reload: yes
+  loop:
+    - net.ipv4.ip_forward
+    - net.ipv6.conf.all.forwarding
+
+- name: Unattended-Upgrades Konfiguration kopieren
+  # Konfiguriert automatische Sicherheitsupdates
+  # Die Template-Datei enthält Einstellungen für automatische Updates und Benachrichtigungen
+  template:
+    src: 50unattended-upgrades.j2
+    dest: /etc/apt/apt.conf.d/50unattended-upgrades
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Unattended-Upgrades aktivieren
+  # Aktiviert automatische Updates über das Debconf-System
+  debconf:
+    name: unattended-upgrades
+    question: unattended-upgrades/enable_auto_updates
+    value: "true"
+    vtype: boolean
+
+- name: Unattended-Upgrades konfigurieren
+  # Wendet die Konfiguration an ohne interaktive Eingabe
+  command: dpkg-reconfigure -f noninteractive unattended-upgrades
