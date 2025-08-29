@@ -1,0 +1,12 @@
+#SPDX-License-Identifier: MIT-0
+---
+# handlers file for newt
+- name: Reload systemd
+  ansible.builtin.systemd:
+    daemon_reload: yes
+
+- name: Enable and start newt
+  ansible.builtin.systemd:
+    name: newt
+    state: restarted
+    enabled: yes

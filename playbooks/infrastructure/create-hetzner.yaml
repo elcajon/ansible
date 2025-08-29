@@ -1,0 +1,170 @@
+---
+- name: Create Hetzner server with Pangolin API integration
+  hosts: localhost
+  gather_facts: false
+
+  vars:
+    hcloud_token: "{{ lookup('community.general.onepassword', 'Hetzner Cloud API' , field='token', vault='CI') }}"
+    pangolin_api_token: "{{ lookup('community.general.onepassword', 'Pangolin - Mannheim', field='Anmeldedaten', vault='CI') }}"
+
+  vars_prompt:
+    - name: server_name
+      prompt: Enter the name of the server to create
+      private: false
+
+    - name: server_type
+      prompt: Enter the server type to create
+      default: cax11
+      private: false
+
+    - name: server_image
+      prompt: Enter the server image to use
+      default: debian-13
+      private: false
+
+    - name: server_location
+      prompt: Enter the server location
+      default: fsn1
+      private: false
+
+    - name: ssh_keys
+      prompt: Enter the SSH key name for the server
+      default: MBA SSH
+      private: false
+
+    - name: docker
+      prompt: Install Docker? [True/False]
+      private: false
+      default: True
+
+    - name: backrest
+      prompt: Install Backrest? [True/False]
+      private: false
+      default: True
+
+    - name: tailscale
+      prompt: Install Tailscale? [True/False]
+      private: false
+      default: True
+
+    - name: newt
+      prompt: Install Newt? [True/False]
+      private: false
+      default: True
+
+  tasks:
+    - name: Read Tailscale node information for server name
+      command: "tailscale ip -4 {{ server_name }}"
+      register: tailscale_info
+      failed_when: false
+      changed_when: false
+      ignore_errors: true
+
+    - name: Save Tailscale IP for further use
+      set_fact:
+        tailscale_ip: "{{ tailscale_info.stdout | default('') }}"
+        use_existing_server: "{{ tailscale_info.rc is defined and tailscale_info.rc == 0 and tailscale_info.stdout != '' }}"
+
+    - name: Create Hetzner server via API
+      hetzner.hcloud.server:
+        api_token: "{{ hcloud_token }}"
+        name: "{{ server_name }}"
+        server_type: "{{ server_type }}"
+        image: "{{ server_image }}"
+        location: "{{ server_location }}"
+        ssh_keys: ["{{ ssh_keys }}"]
+        state: present
+      register: created_server
+      when: not use_existing_server
+
+    - name: Add server to dynamic hostfile
+      add_host:
+        name: "{{ use_existing_server | ternary(tailscale_ip, created_server.hcloud_server.ipv4_address) }}"
+        groups: hetzner_single
+        ansible_user: root
+        server_name: "{{ server_name }}"
+        docker: "{{ docker | bool }}"
+        backrest: "{{ backrest | bool }}"
+        tailscale: "{{ tailscale | bool }}"
+        newt: "{{ newt | bool }}"
+        pangolin_api_token: "{{ pangolin_api_token }}"
+
+    - name: Wait for new server to become available
+      wait_for:
+        timeout: 120
+        port: 22
+        host: "{{ created_server.hcloud_server.ipv4_address }}"
+      when: not use_existing_server
+
+- name: Set up server with new roles
+  hosts: hetzner_single
+  gather_facts: true
+
+  vars:
+    tailscale_token: "{{ lookup('community.general.onepassword', 'Tailscale Token - Remote Server' , field='Anmeldedaten', vault='CI') }}"
+    ansible_python_interpreter: /usr/bin/python3
+
+  tasks:
+    - name: Install Tailscale if needed
+      block:
+        - name: Check if Tailscale is installed and running
+          ansible.builtin.shell: pgrep tailscaled
+          register: tailscale_running
+          failed_when: false
+          changed_when: false
+
+        - name: Install and run Tailscale
+          include_role:
+            name: artis3n.tailscale.machine
+          vars:
+            tailscale_authkey: "{{ tailscale_token }}"
+            tailscale_args: "--ssh --accept-dns=false --accept-routes=false --advertise-exit-node"
+          when: tailscale_running.rc != 0
+      when: tailscale | bool
+
+    - name: Apply base roles
+      block:
+        - name: Set up base system
+          include_role:
+            name: base-system
+
+        - name: Set up security
+          include_role:
+            name: security
+          vars:
+            disable_ssh_for_tailscale: "{{ tailscale|bool }}"
+
+        - name: Set up shell configuration
+          include_role:
+            name: shell-config
+
+        - name: Set up monitoring tools
+          include_role:
+            name: monitoring-tools
+
+    - name: Set up backup tools
+      include_role:
+        name: backup-tools
+      vars:
+        install_backrest: "{{ backrest | bool }}"
+        backrest_server_name: "{{ server_name }}"
+        install_docker: "{{ docker | bool }}"
+      when: backrest | bool
+
+    - name: Set up container tools
+      include_role:
+        name: container-tools
+      vars:
+        install_docker: "{{ docker | bool }}"
+      when: docker | bool
+
+    - name: Set up Newt with Pangolin API integration
+      include_role:
+        name: pangolin-newt
+      vars:
+        install_newt: "{{ newt | bool }}"
+        pangolin_api_token: "{{ lookup('community.general.onepassword', 'Pangolin - Mannheim', field='Anmeldedaten', vault='CI') }}"
+        pangolin_api_endpoint: "{{ lookup('community.general.onepassword', 'Pangolin - Mannheim', field='Host-Name', vault='CI') }}"
+        pangolin_organization_id: "{{ lookup('community.general.onepassword', 'Pangolin - Mannheim', field='Organisation', vault='CI') }}"
+        site_name: "{{ server_name }}"
+      when: newt | bool

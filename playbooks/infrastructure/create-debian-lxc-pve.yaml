@@ -1,0 +1,249 @@
+---
+- name: Create and configure Proxmox LXC Container
+  hosts: localhost
+  gather_facts: false
+
+  vars:
+    # 1Password secrets
+    proxmox_host: "{{ lookup('community.general.onepassword', 'Proxmox API' , field='Host-Name', vault='CI') }}"
+    proxmox_user: "{{ lookup('community.general.onepassword', 'Proxmox API' , field='Benutzername', vault='CI') }}"
+    proxmox_token_id: "{{ lookup('community.general.onepassword', 'Proxmox API' , field='TokenID', vault='CI') }}"
+    proxmox_token_secret: "{{ lookup('community.general.onepassword', 'Proxmox API' , field='Anmeldedaten', vault='CI') }}"
+    mba_pubkey: "{{ lookup('community.general.onepassword', 'MBA SSH - Public Key' , field='Benutzername', vault='CI') }}"
+    tailscale_token: "{{ lookup('community.general.onepassword', 'Tailscale Token' , field='Anmeldedaten', vault='CI') }}"
+
+  vars_prompt:
+    - name: server_name
+      prompt: Enter the name of the server to create
+      private: false
+      default: "docker"
+
+    - name: lxc_pw
+      prompt: Enter the password for the root user
+      private: true
+
+    - name: network_ip_mask
+      prompt: Enter the server's IP address and netmask (e.g. 192.168.0.10/24)
+      private: false
+      default: "10.10.0.5/23"
+
+    - name: network_gateway
+      prompt: Enter the server's gateway (e.g. 192.168.0.1)
+      private: false
+      default: "10.10.0.1"
+
+    - name: network_dns
+      prompt: Enter the server's DNS server (e.g. 192.168.0.1)
+      private: false
+      default: "10.10.0.1"
+
+    # Feature flags
+    - name: docker
+      prompt: Install Docker? [True/False]
+      private: false
+      default: True
+
+    - name: backrest
+      prompt: Install Backrest? [True/False]
+      private: false
+      default: True
+
+    - name: tailscale
+      prompt: Install Tailscale? [True/False]
+      private: false
+      default: True
+
+    - name: newt
+      prompt: Install Newt? [True/False]
+      private: false
+      default: False
+
+  tasks:
+    - name: Check Tailscale configuration
+      block:
+        - name: Read Tailscale node information for server name
+          command: "tailscale ip -4 {{ server_name }}"
+          register: tailscale_info
+          failed_when: false
+          changed_when: false
+
+        - name: Save Tailscale IP for further use
+          set_fact:
+            tailscale_ip: "{{ tailscale_info.stdout }}"
+            use_existing: "{{ tailscale_info.rc == 0 and tailscale_info.stdout != '' }}"
+
+        - name: Save server IP
+          set_fact:
+            server_ip: "{{ network_ip_mask.split('/')[0] }}"
+
+    - name: Create and configure LXC container
+      block:
+        - name: Create new LXC server
+          community.proxmox.proxmox:
+            node: proxmox
+            api_user: "{{ proxmox_user }}"
+            api_host: "{{ proxmox_host }}"
+            api_port: 8006
+            validate_certs: false
+            api_token_id: "{{ proxmox_token_id }}"
+            api_token_secret: "{{ proxmox_token_secret }}"
+            pubkey: "{{ mba_pubkey }}"
+            cpus: 1
+            cores: 16
+            memory: 8192
+            swap: 8192
+            disk: "local:256"
+            netif:
+              net0: "name=eth0,gw={{ network_gateway }},ip={{ network_ip_mask }},bridge=vmbr0"
+            nameserver: "{{ network_dns }}"
+            onboot: 1
+            hostname: "{{ server_name }}"
+            password: "{{ lxc_pw }}"
+            ostemplate: "local:vztmpl/debian-12-standard_12.7-1_amd64.tar.zst"
+            timezone: host
+            unprivileged: true
+            features:
+              - nesting=1
+          register: lxc_info
+          when: not use_existing|default(false)
+
+        - name: Save VMID of new server
+          set_fact:
+            vmid: "{{ lxc_info.vmid }}"
+          when: not use_existing|default(false)
+
+        - name: Prepare container for Docker (if selected)
+          shell: |
+            ssh root@{{ proxmox_host }} "
+              sed -i -e '
+                s/^features:.*/features: keyctl=1,nesting=1/
+              ' /etc/pve/lxc/{{ vmid }}.conf
+            "
+          when: not use_existing|default(false) and docker|bool
+
+        - name: Prepare container for Tailscale (if selected)
+          shell: |
+            ssh root@{{ proxmox_host }} "echo -e 'lxc.cgroup2.devices.allow: c 10:200 rwm\nlxc.mount.entry: /dev/net/tun dev/net/tun none bind,create=file' >> /etc/pve/lxc/{{ vmid }}.conf"
+          when: not use_existing|default(false) and tailscale|bool
+
+        - name: Start new LXC server
+          community.proxmox.proxmox:
+            node: proxmox
+            api_user: "{{ proxmox_user }}"
+            api_host: "{{ proxmox_host }}"
+            api_port: 8006
+            validate_certs: false
+            api_token_id: "{{ proxmox_token_id }}"
+            api_token_secret: "{{ proxmox_token_secret }}"
+            vmid: "{{ vmid }}"
+            state: started
+          when: not use_existing|default(false)
+      when: not use_existing|default(false)
+
+    - name: Prepare for Ansible configuration
+      block:
+        - name: Add target host to dynamic inventory
+          add_host:
+            name: "{{ use_existing|default(false)|ternary(tailscale_ip, server_ip) }}"
+            groups: proxmox_lxc
+            ansible_user: root
+            server_name: "{{ server_name }}"
+            docker: "{{ docker|bool }}"
+            backrest: "{{ backrest|bool }}"
+            tailscale: "{{ tailscale|bool }}"
+            newt: "{{ newt|bool }}"
+
+        - name: Wait for new server to start
+          wait_for:
+            timeout: 120
+            port: 22
+            host: "{{ server_ip }}"
+          when: not use_existing|default(false)
+
+        - name: Adjust SSH configuration in container
+          block:
+            - name: Adjust PermitRootLogin in sshd_config
+              shell: |
+                ssh root@{{ proxmox_host }} "
+                lxc-attach -n {{ vmid }} -- sed -i 's/^#PermitRootLogin.*/PermitRootLogin prohibit-password/' /etc/ssh/sshd_config
+                "
+
+            - name: Restart SSH service
+              shell: |
+                ssh root@{{ proxmox_host }} "
+                lxc-attach -n {{ vmid }} -- systemctl restart ssh
+                "
+          when: not use_existing|default(false)
+
+- name: Configure server with roles
+  hosts: proxmox_lxc
+  gather_facts: true
+  vars:
+    ansible_python_interpreter: /usr/bin/python3
+
+  tasks:
+    - name: Set up Tailscale
+      block:
+        - name: Check if Tailscale is already running
+          ansible.builtin.shell: pgrep tailscaled
+          register: tailscale_running
+          failed_when: false
+          changed_when: false
+
+        - name: Install and start Tailscale
+          include_role:
+            name: artis3n.tailscale.machine
+          vars:
+            tailscale_authkey: "{{ lookup('community.general.onepassword', 'Tailscale Token' , field='Anmeldedaten', vault='CI') }}"
+            tailscale_args: "--ssh --accept-dns=false --accept-routes=false --advertise-exit-node"
+          when: tailscale_running.rc != 0
+      when: tailscale|bool
+
+    - name: Configure basic settings
+      block:
+        - name: Set up base system
+          include_role:
+            name: base-system
+          vars:
+            system_timezone: "Europe/Berlin"
+
+        - name: Configure security settings
+          include_role:
+            name: security
+          vars:
+            disable_ssh_for_tailscale: "{{ tailscale|bool }}"
+
+        - name: Configure shell
+          include_role:
+            name: shell-config
+
+        - name: Set up monitoring tools
+          include_role:
+            name: monitoring-tools
+
+    - name: Set up backup tools
+      include_role:
+        name: backup-tools
+      vars:
+        install_backrest: true
+        backrest_server_name: "{{ server_name }}"
+        install_docker: "{{ docker|bool }}"
+      when: backrest|bool
+
+    - name: Set up container tools
+      include_role:
+        name: container-tools
+      vars:
+        install_docker: true
+      when: docker|bool
+
+    - name: Set up Newt with Pangolin API integration
+      include_role:
+        name: pangolin-newt
+      vars:
+        install_newt: "{{ newt | bool }}"
+        pangolin_api_token: "{{ lookup('community.general.onepassword', 'Pangolin - Mannheim', field='Anmeldedaten', vault='CI') }}"
+        pangolin_api_endpoint: "{{ lookup('community.general.onepassword', 'Pangolin - Mannheim', field='Host-Name', vault='CI') }}"
+        pangolin_organization_id: "{{ lookup('community.general.onepassword', 'Pangolin - Mannheim', field='Organisation', vault='CI') }}"
+        site_name: "{{ server_name }}"
+      when: newt | bool

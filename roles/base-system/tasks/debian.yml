@@ -1,0 +1,57 @@
+---
+# Debian-specific tasks for base-system
+# Diese Datei enthält alle Aufgaben, die spezifisch für Debian-basierte Systeme sind
+
+- name: System aktualisieren und bereinigen
+  apt:
+    update_cache: yes # APT Cache aktualisieren
+    upgrade: yes # Alle Pakete aktualisieren
+    autoremove: yes # Nicht mehr benötigte Pakete entfernen
+    autoclean: yes # Alte Paket-Archive bereinigen
+    clean: yes # Paket-Cache vollständig leeren
+    purge: yes # Konfigurationsdateien bei Deinstallation entfernen
+
+- name: Benötigte Pakete installieren
+  apt:
+    name:
+      - jq # JSON-Parser für die Kommandozeile
+      - curl # Kommandozeilen-Tool für HTTP-Anfragen
+      - htop # Erweiterte Prozess-Überwachung
+      - gnupg2 # GNU Privacy Guard für Verschlüsselung und Signaturen
+      - unattended-upgrades # Automatische Sicherheitsupdates
+      - apt-listchanges # Benachrichtigung über Änderungen bei Updates
+      - sudo # Privilegierte Kommandos ausführen
+      - wget # Web-Downloader für die Kommandozeile
+      - git # Versionskontrollsystem
+      - zsh # Z-Shell (erweiterte Bash-Alternative)
+      - unzip # Entpacken von ZIP-Archiven
+      - net-tools # Netzwerk-Diagnosetools (ifconfig, netstat, etc.)
+    state: present
+
+- name: Nicht benötigte Pakete deinstallieren
+  apt:
+    name:
+      - postfix # Mail Transfer Agent (nicht notwendig für die meisten Server)
+      - exim4-base # Alternativer Mail Transfer Agent
+    state: absent
+    purge: yes # Konfigurationsdateien entfernen
+    autoremove: yes # Abhängigkeiten mit entfernen
+  ignore_errors: true # Fehler ignorieren, falls Pakete nicht installiert sind
+  no_log: true # Keine Ausgabe im Log für sensible Informationen
+
+- name: Aufräumen diverser Dateien
+  file:
+    path: "{{ item }}"
+    state: absent
+  loop:
+    - /etc/motd # Message of the day (Login-Nachricht)
+    - /root/.cloud-locale-test.skip # Cloud-Init Locale Test Skip-Datei
+    - /root/.bashrc # Bash-Konfiguration (wird durch ZSH ersetzt)
+    - /root/.profile # Shell-Profil (wird durch ZSH ersetzt)
+    - /root/.wget-hsts # Wget HSTS Cache
+    - /root/.lesshst # Less-History
+    - /root/.zcompdump* # ZSH Completion Cache
+    - /root/.cache # Allgemeiner Cache-Ordner
+
+- name: Inhalt von /tmp leeren
+  ansible.builtin.shell: rm -rf /tmp/* # Temporäre Dateien entfernen für bessere Sicherheit und Speicherplatz

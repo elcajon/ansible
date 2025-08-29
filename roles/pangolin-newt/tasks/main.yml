@@ -1,0 +1,35 @@
+#SPDX-License-Identifier: MIT-0
+---
+# tasks file for pangolin-newt
+
+# Pangolin API Integration für automatische Site-Erstellung
+- name: Include Pangolin API Integration tasks
+  import_tasks: pangolin_api.yml
+  when: install_newt | default(False)
+
+- name: Update/Installations-Skript für Newt kopieren
+  template:
+    src: newt_update.j2
+    dest: /etc/cron.daily/newt_update
+    owner: root
+    group: root
+    mode: "0755"
+  when: install_newt | default(False)
+
+- name: Initialer Download der Newt-Binary
+  command: /etc/cron.daily/newt_update
+  args:
+    creates: /usr/local/bin/newt
+  when: install_newt | default(False)
+
+- name: Newt Systemd Service aus Template erzeugen
+  template:
+    src: newt.service.j2
+    dest: /etc/systemd/system/newt.service
+    owner: root
+    group: root
+    mode: "0644"
+  notify:
+    - Reload systemd
+    - Enable and start newt
+  when: install_newt | default(False)
