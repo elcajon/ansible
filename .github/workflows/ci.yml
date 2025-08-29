@@ -1,0 +1,92 @@
+name: CI
+
+on:
+  pull_request:
+    branches: ["main"]
+  push:
+    branches-ignore: ["main"]
+  workflow_dispatch:
+
+jobs:
+  lint-and-syntax:
+    name: Lint & Syntax Check (Ansible ${{ matrix.ansible-version }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: true
+      matrix:
+        ansible-version: ['2.16', '2.17']
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Ansible, ansible-lint, yamllint
+        run: |
+          python -m pip install --upgrade pip
+          pip install ansible-core~=${{ matrix.ansible-version }}.0
+          pip install ansible-lint yamllint
+
+      - name: Install required Ansible collections
+        run: |
+          ansible-galaxy collection install community.general hetzner.hcloud community.proxmox
+          ansible-galaxy install artis3n.tailscale
+
+      - name: Run ansible-lint
+        run: |
+          ansible-lint --version
+          ansible-lint .
+
+      - name: Run yamllint on YAML files
+        run: |
+          yamllint --version
+          yamllint . --config-file .github/.yamllint.yml
+
+      - name: Syntax check main playbooks
+        run: |
+          ansible --version
+          for playbook in create_hetzner.yaml create_debian_lxc_pve.yaml setup_generic_debian_by_ip.yaml update_inventory.yaml; do
+            if [ -f "$playbook" ]; then
+              echo "Checking syntax for: $playbook"
+              ansible-playbook --syntax-check "$playbook"
+            fi
+          done
+
+      - name: Validate Jinja2 templates
+        run: |
+          python3 -c "
+import os, jinja2
+templates = []
+for root, dirs, files in os.walk('.'):
+    for file in files:
+        if file.endswith('.j2'):
+            templates.append(os.path.join(root, file))
+
+if templates:
+    print('Validating Jinja2 templates:')
+    failed = 0
+    for template in templates:
+        try:
+            with open(template, 'r') as f:
+                content = f.read()
+            env = jinja2.Environment()
+            env.parse(content)
+            print(f'✓ {template}')
+        except Exception as e:
+            print(f'✗ {template}: {e}')
+            failed += 1
+
+    if failed > 0:
+        print(f'{failed} template(s) failed validation')
+        exit(1)
+    else:
+        template_count = len(templates)
+        msg = f'All {template_count} templates validated successfully'
+        print(msg)
+else:
+    print('No Jinja2 templates found')
+"
