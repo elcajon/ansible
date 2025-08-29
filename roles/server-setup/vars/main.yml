@@ -1,8 +1,0 @@
-#SPDX-License-Identifier: MIT-0
----
-# vars file for server-setup
-rclone_config: "{{ lookup('community.general.onepassword_doc', 'Rclone Config' , vault='CI') }}"
-timezone: "Europe/Berlin"
-backrest_repo_password: "{{ lookup('community.general.onepassword', 'Backrest Hetzner', field='Anmeldedaten' , vault='CI') }}"
-AWS_ACCESS_KEY_ID: "{{ lookup('community.general.onepassword', 'S3 - Hetzner', field='Access Key' , vault='CI') }}"
-AWS_SECRET_ACCESS_KEY: "{{ lookup('community.general.onepassword', 'S3 - Hetzner', field='Secret Key' , vault='CI') }}"

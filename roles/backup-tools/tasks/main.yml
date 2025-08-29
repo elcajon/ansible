@@ -1,0 +1,76 @@
+#SPDX-License-Identifier: MIT-0
+---
+# tasks file for backup-tools
+- name: Host Architektur bestimmen
+  set_fact:
+    detected_arch: >-
+      {{ 'arm64' if ansible_architecture == 'aarch64'
+         else ansible_architecture }}
+
+- name: Backrest herunterladen und installieren
+  shell: |
+    curl -s https://api.github.com/repos/garethgeorge/backrest/releases/latest | \
+      grep "browser_download_url" | grep "Linux_{{ detected_arch }}.tar.gz" | cut -d '"' -f 4 | xargs curl -LO
+    tar -xzf backrest_Linux_{{ detected_arch }}.tar.gz -C /tmp
+    rm backrest_Linux_{{ detected_arch }}.tar.gz
+    /tmp/install.sh
+  when: install_backrest | default(False)
+
+- name: Erstelle GUID-Strings
+  set_fact:
+    guid1: '{{ lookup(''pipe'', ''python3 -c "import secrets; print(secrets.token_hex(32))"'') }}'
+    guid2: '{{ lookup(''pipe'', ''python3 -c "import secrets; print(secrets.token_hex(32))"'') }}'
+  when: install_backrest | default(False)
+
+- name: Backrest Konfigurationsverzeichnis erstellen
+  ansible.builtin.file:
+    path: /root/.config/backrest
+    state: directory
+    mode: "0755"
+  when: install_backrest | default(False)
+
+- name: Backrest Konfiguration aus Template erzeugen
+  ansible.builtin.template:
+    src: config.json.j2
+    dest: /root/.config/backrest/config.json
+    force: false
+  when: install_backrest | default(False)
+
+- name: Wrapper-Skript für Backrest kopieren
+  template:
+    src: backrest-wrapper.sh.j2
+    dest: /usr/local/bin/backrest-wrapper.sh
+    owner: root
+    group: root
+    mode: "0755"
+  when: install_backrest | default(False)
+
+- name: Systemd Service Datei für Backrest kopieren
+  template:
+    src: backrest.service.j2
+    dest: /etc/systemd/system/backrest.service
+    owner: root
+    group: root
+    mode: 0644
+  notify:
+    - Reload systemd
+    - Restart backrest
+  when: install_backrest | default(False)
+
+- name: RCLONE installieren
+  shell: |
+    curl https://rclone.org/install.sh | bash
+  args:
+    creates: /usr/bin/rclone
+
+- name: RCLONE Config Verzeichnis erstellen
+  ansible.builtin.file:
+    path: /root/.config/rclone
+    state: directory
+    mode: "0755"
+
+- name: RCLONE-Konfiguration anlegen
+  copy:
+    dest: /root/.config/rclone/rclone.conf
+    content: "{{ rclone_config | default('') }}"
+  when: rclone_config is defined and rclone_config | length > 0

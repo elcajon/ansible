@@ -1,0 +1,9 @@
+#SPDX-License-Identifier: MIT-0
+---
+# defaults file for newt
+install_newt: False
+pangolin_api_token: ""
+pangolin_organization_id: "org-1"
+pangolin_api_endpoint: "https://api.example.com/v1"
+site_name: "Remote Server"
+pangolin_site_type: "newt"

@@ -1,0 +1,31 @@
+---
+# tasks file for pangolin API Integration
+- name: Get site defaults from Pangolin API using curl
+  shell: >
+    curl -s -H "Authorization: Bearer {{ lookup('env', 'pangolin_api_token') | default(pangolin_api_token, true) }}"
+    {{ lookup('env', 'pangolin_api_endpoint') | default(pangolin_api_endpoint, true) }}/org/{{ lookup('env', 'pangolin_organization_id') | default(pangolin_organization_id, true) }}/pick-site-defaults
+  register: site_defaults_curl
+
+- name: Parse site defaults JSON
+  set_fact:
+    site_defaults: "{{ site_defaults_curl.stdout | from_json }}"
+  when: site_defaults_curl.stdout is defined and site_defaults_curl.stdout != ''
+
+- name: Create site using curl command
+  shell: >
+    curl -s -X PUT
+    -H "Authorization: Bearer {{ pangolin_api_token}}"
+    -H "Content-Type: application/json"
+    -d '{
+      "name":"{{ site_name }}",
+      "exitNodeId":{{ site_defaults.data.exitNodeId }},
+      "pubKey":"{{ site_defaults.data.publicKey }}",
+      "subnet":"{{ site_defaults.data.subnet }}",
+      "newtId":"{{ site_defaults.data.newtId }}",
+      "secret":"{{ site_defaults.data.newtSecret }}",
+      "address":"{{ site_defaults.data.clientAddress }}",
+      "type":"{{ pangolin_site_type }}"
+    }'
+    {{ pangolin_api_endpoint }}/org/{{ pangolin_organization_id }}/site
+  register: create_site_result
+  when: site_defaults is defined and site_defaults.data is defined

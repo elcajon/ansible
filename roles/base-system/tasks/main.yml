@@ -1,0 +1,18 @@
+#SPDX-License-Identifier: MIT-0
+---
+# tasks file for base-system
+- name: Include Linux-specific tasks for Debian-based systems
+  include_tasks: debian.yml
+  when:
+    - ansible_os_family == "Debian"
+    - not skip_os_specific_tasks | default(false)
+
+- name: Include macOS-specific tasks
+  include_tasks: macos.yml
+  when:
+    - ansible_system == "Darwin"
+    - not skip_os_specific_tasks | default(false)
+
+- name: Set timezone on all systems
+  include_tasks: timezone.yml
+  when: not skip_timezone | default(false)

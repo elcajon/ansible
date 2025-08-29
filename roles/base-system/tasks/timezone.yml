@@ -1,0 +1,7 @@
+---
+# Timezone tasks for all systems
+
+- name: Set timezone on Linux systems
+  timezone:
+    name: "{{ system_timezone | default('Europe/Berlin') }}"
+  when: ansible_system == "Linux"
