@@ -1,41 +1,41 @@
-# Newt Role
+# Pangolin Newt Role
 
-Diese Rolle installiert und konfiguriert Newt auf einem Debian-basierten Server.
+This role installs and configures Newt on a Debian-based server.
 
-## Funktionen
+## Features
 
-- Installation und Konfiguration des Newt-Tools über ein Update/Installations-Skript
-- Einrichtung des Newt-Service für automatische Ausführung
-- Bereitstellung eines täglichen Update-Skripts für Newt
+- Installation and configuration of the Newt tool via an update/installation script
+- Setup of the Newt service for automatic execution
+- Provision of a daily update script for Newt
 
-## Variablen
+## Variables
 
-| Variable | Standardwert | Beschreibung |
-|----------|--------------|--------------|
-| install_newt | False | Aktiviert die Installation und Konfiguration von Newt |
-| newt_client_id | "" | Die ID für den Newt-Client |
-| newt_client_secret | "" | Das Secret für den Newt-Client |
-| newt_client_endpoint | "https://connect.nwt.today" | Der Endpoint für den Newt-Client |
+| Variable | Default Value | Description |
+|----------|---------------|-------------|
+| install_newt | False | Enables the installation and configuration of Newt |
+| newt_client_id | "" | The ID for the Newt client |
+| newt_client_secret | "" | The secret for the Newt client |
+| newt_client_endpoint | "https://connect.nwt.today" | The endpoint for the Newt client |
 
-## Beispiel
+## Example
 
 ```yaml
 - hosts: all
   roles:
-    - role: newt
+    - role: pangolin-newt
       install_newt: True
-      newt_client_id: "meine-newt-id"
-      newt_client_secret: "mein-newt-secret"
+      newt_client_id: "my-newt-id"
+      newt_client_secret: "my-newt-secret"
       newt_client_endpoint: "https://connect.nwt.today"
 ```
 
-## Abhängigkeiten
+## Dependencies
 
-Diese Rolle hat keine externen Abhängigkeiten, benötigt aber Internetzugang, um Newt herunterzuladen.
+This role has no external dependencies but requires internet access to download Newt.
 
-## Hinweis
+## Notes
 
-- Newt wird nur installiert und konfiguriert, wenn die Variable `install_newt` auf `True` gesetzt ist.
-- Die Rolle richtet sowohl ein Update-Skript als auch einen Systemd-Service für Newt ein.
-- Das Update-Skript wird als täglicher Cron-Job eingerichtet, um Newt aktuell zu halten.
-- Für die Einrichtung des Systemd-Services werden die Variablen `newt_client_id`, `newt_client_secret` und `newt_client_endpoint` benötigt.
+- Newt is only installed and configured when the `install_newt` variable is set to `True`.
+- The role sets up both an update script and a systemd service for Newt.
+- The update script is set up as a daily cron job to keep Newt current.
+- For setting up the systemd service, the variables `newt_client_id`, `newt_client_secret` and `newt_client_endpoint` are required.

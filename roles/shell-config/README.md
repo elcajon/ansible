@@ -1,19 +1,19 @@
 # Shell Configuration Role
 
-Diese Rolle konfiguriert die Shell-Umgebung auf einem Debian-basierten Server.
+This role configures the shell environment on a Debian-based server.
 
-## Funktionen
+## Features
 
-- ZSH als Standard-Shell setzen
-- Oh-My-Zsh installieren und konfigurieren
-- ZSH Theme anpassen
-- Nützliche Aliases und Update-Einstellungen für ZSH konfigurieren
+- Set ZSH as the default shell
+- Install and configure Oh-My-Zsh
+- Customize ZSH theme
+- Configure useful aliases and update settings for ZSH
 
-## Variablen
+## Variables
 
-Diese Rolle verwendet aktuell keine konfigurierbaren Variablen. Das ZSH-Theme ist fest auf "maran" eingestellt.
+This role currently does not use any configurable variables. The ZSH theme is fixed to "maran".
 
-## Beispiel
+## Example
 
 ```yaml
 - hosts: all
@@ -21,14 +21,14 @@ Diese Rolle verwendet aktuell keine konfigurierbaren Variablen. Das ZSH-Theme is
     - role: shell-config
 ```
 
-## Abhängigkeiten
+## Dependencies
 
-Diese Rolle setzt voraus, dass ZSH auf dem System installiert ist. Es wird empfohlen, die `base-system` Rolle vor dieser Rolle auszuführen, da diese die benötigten Pakete (einschließlich ZSH) installiert.
+This role assumes that ZSH is installed on the system. It is recommended to run the `base-system` role before this role, as it installs the required packages (including ZSH).
 
-## Hinweis
+## Notes
 
-Nach der Ausführung dieser Rolle wird ZSH als Standard-Shell für den Root-Benutzer konfiguriert. Die Konfiguration umfasst:
-- Installation von Oh-My-Zsh
-- Einrichtung des "maran" Themes
-- Hinzufügen eines praktischen `update`-Alias für Systemaktualisierungen
-- Konfiguration von automatischen Oh-My-Zsh Updates
+After executing this role, ZSH will be configured as the default shell for the root user. The configuration includes:
+- Installation of Oh-My-Zsh
+- Setup of the "maran" theme
+- Adding a convenient `update` alias for system updates
+- Configuration of automatic Oh-My-Zsh updates
