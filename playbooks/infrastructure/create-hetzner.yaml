@@ -5,7 +5,6 @@
 
   vars:
     hcloud_token: "{{ lookup('community.general.onepassword', 'Hetzner Cloud API' , field='token', vault='CI') }}"
-    pangolin_api_token: "{{ lookup('community.general.onepassword', 'Pangolin - Mannheim', field='Anmeldedaten', vault='CI') }}"
 
   vars_prompt:
     - name: server_name
@@ -87,7 +86,6 @@
         backrest: "{{ backrest | bool }}"
         tailscale: "{{ tailscale | bool }}"
         newt: "{{ newt | bool }}"
-        pangolin_api_token: "{{ pangolin_api_token }}"
 
     - name: Wait for new server to become available
       wait_for:
