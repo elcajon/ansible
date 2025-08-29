@@ -1,21 +1,21 @@
 # Security Role
 
-Diese Rolle implementiert grundlegende Sicherheitsmaßnahmen auf einem Debian-basierten Server.
+This role implements basic security measures on a Debian-based server.
 
-## Funktionen
+## Features
 
-- SSH Hardening und Absicherung
-- Optional: SSH-Service deaktivieren (für Systeme, die nur über Tailscale erreichbar sein sollen)
-- IPv4 & IPv6 Forwarding aktivieren
-- Konfiguration von unattended-upgrades für automatische Sicherheitsupdates
+- SSH hardening and security
+- Optional: Disable SSH service (for systems that should only be accessible via Tailscale)
+- Enable IPv4 & IPv6 forwarding
+- Configuration of unattended-upgrades for automatic security updates
 
-## Variablen
+## Variables
 
-| Variable | Standardwert | Beschreibung |
-|----------|--------------|--------------|
-| disable_ssh_for_tailscale | False | Wenn True, wird der SSH-Dienst deaktiviert (für Systeme, die nur über Tailscale erreichbar sein sollen) |
+| Variable | Default Value | Description |
+|----------|---------------|-------------|
+| disable_ssh_for_tailscale | False | If True, the SSH service will be disabled (for systems that should only be accessible via Tailscale) |
 
-## Beispiel
+## Example
 
 ```yaml
 - hosts: all
@@ -24,10 +24,10 @@ Diese Rolle implementiert grundlegende Sicherheitsmaßnahmen auf einem Debian-ba
       disable_ssh_for_tailscale: True
 ```
 
-## Abhängigkeiten
+## Dependencies
 
-Diese Rolle hat keine externen Abhängigkeiten, setzt aber voraus, dass die entsprechenden SSH-Dienste auf dem System installiert sind.
+This role has no external dependencies but assumes that the corresponding SSH services are installed on the system.
 
-## Hinweis
+## Notes
 
-IPv4 & IPv6 Forwarding ist in dieser Rolle enthalten, da es sicherheitsrelevante Netzwerkkonfigurationen betrifft und oft in Verbindung mit Firewalls und VPN-Lösungen verwendet wird.
+IPv4 & IPv6 forwarding is included in this role because it affects security-related network configurations and is often used in conjunction with firewalls and VPN solutions.

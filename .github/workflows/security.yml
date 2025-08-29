@@ -1,3 +1,4 @@
+---
 name: Security
 
 on:
@@ -17,7 +18,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           fetch-depth: 0  # Full history for secret scanning
 
@@ -36,7 +37,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Install 1Password CLI
         uses: 1password/install-cli-action@v2
@@ -137,7 +138,7 @@ jobs:
               print(f"\nScanning: {yaml_file}")
               secret_issues = check_hardcoded_secrets(yaml_file)
               if secret_issues:
-                  print(f"\u26a0\ufe0f  Potential security issues in {yaml_file}:")
+                  print(f"⚠️  Potential security issues in {yaml_file}:")
                   for issue in secret_issues:
                       print(f"    {issue}")
                   validation_failed = True
@@ -151,10 +152,10 @@ jobs:
                           validation_failed = True
 
           if validation_failed:
-              print("\n\u274c Secret validation failed!")
+              print("\n❌ Secret validation failed!")
               sys.exit(1)
           else:
-              print("\n\u2705 All secret validations passed!")
+              print("\n✅ All secret validations passed!")
           EOF
 
   codeql-analysis:
@@ -167,7 +168,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v3

@@ -1,18 +1,18 @@
 # Container Tools Role
 
-Diese Rolle installiert und konfiguriert Container-Tools auf einem Debian-basierten Server.
+This role installs and configures container tools on a Debian-based server.
 
-## Funktionen
+## Features
 
-- Installation von Docker über das offizielle Install-Skript
+- Installation of Docker via the official install script
 
-## Variablen
+## Variables
 
-| Variable | Standardwert | Beschreibung |
-|----------|--------------|--------------|
-| install_docker | False | Aktiviert die Installation von Docker |
+| Variable | Default Value | Description |
+|----------|---------------|-------------|
+| install_docker | False | Enables the installation of Docker |
 
-## Beispiel
+## Example
 
 ```yaml
 - hosts: all
@@ -21,12 +21,12 @@ Diese Rolle installiert und konfiguriert Container-Tools auf einem Debian-basier
       install_docker: True
 ```
 
-## Abhängigkeiten
+## Dependencies
 
-Diese Rolle hat keine externen Abhängigkeiten, benötigt aber Internetzugang, um Docker herunterzuladen.
+This role has no external dependencies but requires internet access to download Docker.
 
-## Hinweis
+## Notes
 
-- Docker wird nur installiert, wenn die Variable `install_docker` auf `True` gesetzt ist.
-- Die Installation erfolgt über das offizielle Docker Install-Skript.
-- Nach der Installation können Docker-Container ohne zusätzliche Konfiguration verwendet werden.
+- Docker is only installed when the `install_docker` variable is set to `True`.
+- Installation is done via the official Docker install script.
+- After installation, Docker containers can be used without additional configuration.

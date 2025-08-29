@@ -1,30 +1,30 @@
 # Backup Tools Role
 
-Diese Rolle installiert und konfiguriert verschiedene Backup-Tools auf einem Debian-basierten Server.
+This role installs and configures various backup tools on a Debian-based server.
 
-## Funktionen
+## Features
 
-- Installation und Konfiguration von Backrest (ein leistungsfähiges Backup-Tool)
-- Einrichtung des Backrest-Service und Wrapper-Skripts
-- Installation und Konfiguration von RCLONE für Cloud-Speicher-Integration
+- Installation and configuration of Backrest (a powerful backup tool)
+- Setup of Backrest service and wrapper scripts
+- Installation and configuration of RCLONE for cloud storage integration
 
-## Variablen
+## Variables
 
-| Variable | Standardwert | Beschreibung |
-|----------|--------------|--------------|
-| install_backrest | False | Aktiviert die Installation und Konfiguration von Backrest |
-| rclone_config | "" | RCLONE-Konfiguration als String (wird direkt in die Konfigurationsdatei geschrieben) |
-| backrest_server_name | "localhost" | Der Name des Servers (wird für Backrest-Konfiguration verwendet) |
-| install_docker | False | Information, ob Docker installiert ist (wird für Backrest-Hooks verwendet) |
+| Variable | Default Value | Description |
+|----------|---------------|-------------|
+| install_backrest | False | Enables the installation and configuration of Backrest |
+| rclone_config | "" | RCLONE configuration as string (written directly to configuration file) |
+| backrest_server_name | "localhost" | The server name (used for Backrest configuration) |
+| install_docker | False | Information whether Docker is installed (used for Backrest hooks) |
 
-## Beispiel
+## Example
 
 ```yaml
 - hosts: all
   roles:
     - role: backup-tools
       install_backrest: True
-      backrest_server_name: "mein-server"
+      backrest_server_name: "my-server"
       install_docker: True
       rclone_config: |
         [remote]
@@ -35,12 +35,12 @@ Diese Rolle installiert und konfiguriert verschiedene Backup-Tools auf einem Deb
         region = eu-central-1
 ```
 
-## Abhängigkeiten
+## Dependencies
 
-Diese Rolle hat keine externen Abhängigkeiten, benötigt aber Internetzugang, um die Tools herunterzuladen.
+This role has no external dependencies but requires internet access to download the tools.
 
-## Hinweis
+## Notes
 
-- Backrest wird nur installiert, wenn die Variable `install_backrest` auf `True` gesetzt ist.
-- Für die Backrest-Konfiguration werden automatisch zwei GUID-Strings generiert.
-- Die RCLONE-Konfiguration wird nur erstellt, wenn die Variable `rclone_config` definiert ist und einen Wert enthält.
+- Backrest is only installed when the `install_backrest` variable is set to `True`.
+- For Backrest configuration, two GUID strings are automatically generated.
+- The RCLONE configuration is only created when the `rclone_config` variable is defined and contains a value.
