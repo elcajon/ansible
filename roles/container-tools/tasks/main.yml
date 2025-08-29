@@ -1,0 +1,11 @@
+#SPDX-License-Identifier: MIT-0
+---
+# tasks file for container-tools
+- name: Docker installieren
+  shell: |
+    curl -fsSL https://get.docker.com -o get-docker.sh
+    sh get-docker.sh
+    rm get-docker.sh
+  args:
+    creates: /usr/bin/docker
+  when: install_docker | default(False)

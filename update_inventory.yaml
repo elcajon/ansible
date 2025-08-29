@@ -1,0 +1,25 @@
+---
+- name: Update base-system on local host
+  hosts: localhost
+  gather_facts: true
+  connection: local
+  become: false # Do not use sudo automatically for the local host
+
+  tasks:
+    - name: Apply base-system role to local host
+      ansible.builtin.include_role:
+        name: base-system
+
+- name: Update base-system on Tailscale inventory hosts
+  hosts: tag_ansible
+  gather_facts: true
+  become: true # Use sudo for remote hosts
+
+  vars:
+    ansible_python_interpreter: /usr/bin/python3
+    skip_timezone: true
+
+  tasks:
+    - name: Apply base-system role to remote hosts
+      ansible.builtin.include_role:
+        name: base-system

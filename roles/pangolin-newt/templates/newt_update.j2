@@ -1,0 +1,98 @@
+#!/bin/bash
+# Newt Update Script
+
+# Pfad zur newt-Binary
+NEWTPATH="/usr/local/bin/newt"
+
+# Funktion, um die installierte Version auszulesen
+get_installed_version() {
+  if [ -x "$NEWTPATH" ]; then
+    version=$($NEWTPATH --version 2>&1 | grep -o '[0-9]\+\.[0-9]\+\.[0-9]\+' | head -n 1)
+    echo "$version"
+  else
+    echo "none"
+  fi
+}
+
+# Funktion, um die neueste Version von GitHub zu holen
+get_latest_version() {
+  curl -s "https://api.github.com/repos/fosrl/newt/releases/latest" | grep -o '"tag_name": "[^"]*"' | cut -d'"' -f4
+}
+
+# Funktion zur Erkennung des Betriebssystems und der Architektur
+detect_os_arch() {
+  OS="$(uname -s | tr '[:upper:]' '[:lower:]')"
+  ARCH="$(uname -m)"
+
+  # Mapping für OS
+  case "$OS" in
+    linux*)     OS="linux";;
+    darwin*)    OS="darwin";;
+    freebsd*)   OS="freebsd";;
+    msys*|mingw*|cygwin*) OS="windows";;
+    *)          echo "Nicht unterstütztes Betriebssystem: $OS" >&2; exit 1;;
+  esac
+
+  # Mapping für Architektur
+  case "$ARCH" in
+    x86_64*)    ARCH="amd64";;
+    aarch64*)   ARCH="arm64";;
+    armv7*)     ARCH="arm32";;
+    armv6*)     ARCH="arm32v6";;
+    riscv64*)   ARCH="riscv64";;
+    i386*|i686*) ARCH="386";;
+    *)          echo "Nicht unterstützte Architektur: $ARCH" >&2; exit 1;;
+  esac
+
+  # Windows-Binaries haben eine .exe-Endung
+  if [ "$OS" = "windows" ]; then
+    echo "${OS}_${ARCH}.exe"
+  else
+    echo "${OS}_${ARCH}"
+  fi
+}
+
+# Installationsfunktion
+install_newt() {
+  latest="$1"
+  os_arch="$(detect_os_arch)"
+
+  url="https://github.com/fosrl/newt/releases/download/${latest}/newt_${os_arch}"
+  echo "Lade newt ${latest} für ${os_arch} herunter..."
+
+  # Temporäre Datei für den Download
+  TMP_FILE="/tmp/newt_${latest}"
+
+  # Download
+  curl -L -o "${TMP_FILE}" "${url}"
+  curl_status=$?
+
+  if [ $curl_status -eq 0 ]; then
+    echo "Installiere newt nach ${NEWTPATH}"
+    sudo mv "${TMP_FILE}" "${NEWTPATH}"
+    sudo chmod +x "${NEWTPATH}"
+    echo "Update erfolgreich."
+  else
+    echo "Download fehlgeschlagen. URL: ${url}"
+    echo "Bitte überprüfen Sie die Verbindung oder ob die Version für Ihre Architektur verfügbar ist."
+    exit 1
+  fi
+}
+
+# Hauptprogramm
+installed_version="$(get_installed_version)"
+latest_version="$(get_latest_version)"
+
+echo "Installierte Version: ${installed_version}"
+echo "Neueste Version: ${latest_version}"
+echo "System: $(detect_os_arch)"
+
+if [ "${installed_version}" = "none" ]; then
+  echo "newt ist nicht installiert. Installation wird gestartet."
+  install_newt "${latest_version}"
+elif [ "${installed_version}" != "${latest_version}" ]; then
+  echo "Es gibt ein Update. Aktualisiere newt auf Version ${latest_version}."
+  install_newt "${latest_version}"
+else
+  echo "newt ist bereits auf dem neuesten Stand."
+fi

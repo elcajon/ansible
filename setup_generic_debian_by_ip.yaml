@@ -1,102 +1,151 @@
 ---
-- name: Serverkonfiguration per IP
+- name: Server configuration by IP or hostname
   hosts: localhost
   gather_facts: false
 
+  vars:
+    tailscale_token: "{{ lookup('community.general.onepassword', 'Tailscale Token - Remote Server' , field='Anmeldedaten', vault='CI') }}"
+
   vars_prompt:
     - name: server_name
-      prompt: DNS Name oder IP des zu konfigurierenden Servers eingeben
+      prompt: Enter the DNS name or IP address of the server to configure
       private: false
 
+    # Feature flags
     - name: docker
-      prompt: Docker installiert? [True/False]
+      prompt: Install Docker? [True/False]
       private: false
       default: True
 
     - name: backrest
-      prompt: Backrest installiert? [True/False]
+      prompt: Install Backrest? [True/False]
       private: false
       default: True
 
     - name: tailscale
-      prompt: Tailscale installiert? [True/False]
+      prompt: Install Tailscale? [True/False]
       private: false
       default: True
 
     - name: proxmox
-      prompt: Proxmox Server? [True/False]
+      prompt: Is this a Proxmox server? [True/False]
+      private: false
+      default: False
+
+    - name: newt
+      prompt: Install Newt? [True/False]
       private: false
       default: False
 
   tasks:
-    - name: Lesen Tailscale Node Informationen zu Servernamen
-      command: "tailscale ip -4 {{ server_name }} "
-      register: tailscale_info
-      failed_when: false
+    - name: Check Tailscale configuration
+      block:
+        - name: Read Tailscale node information for server name
+          command: "tailscale ip -4 {{ server_name }}"
+          register: tailscale_info
+          failed_when: false
+          changed_when: false
 
-    - name: Speichern der Tailscale IP zur weiteren Verwendung
-      set_fact:
-        tailscale_ip: "{{ tailscale_info.stdout }}"
+        - name: Save Tailscale IP for further use
+          set_fact:
+            tailscale_ip: "{{ tailscale_info.stdout }}"
+            use_tailscale: "{{ tailscale_info.rc == 0 and tailscale_info.stdout != '' }}"
 
-    - name: IP des Servers in dynamisches Hostfile aufnehmen
-      add_host:
-        name: "{{ server_name }}"
-        groups: hetzner_single
-        ansible_user: root
-        server_name: "{{ server_name }}"
-        docker: "{{ docker }}"
-        backrest: "{{ backrest }}"
-        tailscale: "{{ tailscale }}"
-        proxmox: "{{ proxmox }}"
-      when: tailscale_ip == ""
+    - name: Prepare for Ansible configuration
+      block:
+        - name: Add target host to dynamic inventory
+          add_host:
+            name: "{{ use_tailscale|default(false)|ternary(tailscale_ip, server_name) }}"
+            groups: generic_debian
+            ansible_user: root
+            server_name: "{{ server_name }}"
+            docker: "{{ docker|bool }}"
+            backrest: "{{ backrest|bool }}"
+            tailscale: "{{ tailscale|bool }}"
+            newt: "{{ newt|bool }}"
+            proxmox: "{{ proxmox|bool }}"
 
-    - name: Tailscale IP in dynamisches Hostfile aufnehmen
-      add_host:
-        name: "{{ tailscale_ip }}"
-        groups: hetzner_single
-        ansible_user: root
-        server_name: "{{ server_name }}"
-        docker: "{{ docker }}"
-        backrest: "{{ backrest }}"
-        tailscale: "{{ tailscale }}"
-        proxmox: "{{ proxmox }}"
-      when: tailscale_ip != ""
+        - name: Wait for server to become reachable
+          wait_for:
+            timeout: 120
+            port: 22
+            host: "{{ server_name }}"
+          when: not use_tailscale|default(false)
 
-    - name: Auf Erreichbarkeit des Servers warten
-      wait_for:
-        timeout: 120
-        port: 22
-        host: "{{ server_name }}"
-      when: tailscale_ip == ""
-
-- name: Server mit custom Skript aufsetzen
-  hosts: hetzner_single
+- name: Configure server
+  hosts: generic_debian
   gather_facts: true
-
   vars:
-    tailscale_token: "{{ lookup('community.general.onepassword', 'Tailscale Token - Remote Server' , field='Anmeldedaten', vault='CI') }}"
     ansible_python_interpreter: /usr/bin/python3
 
   tasks:
-    - name: Check if tailscale is installed and running
-      ansible.builtin.shell: pgrep tailscaled
-      register: tailscale_running
-      failed_when: false
-      changed_when: false
+    - name: Set up Tailscale
+      block:
+        - name: Check if Tailscale is already running
+          ansible.builtin.shell: pgrep tailscaled
+          register: tailscale_running
+          failed_when: false
+          changed_when: false
 
-    - name: Install and run Tailscale
+        - name: Install and start Tailscale
+          include_role:
+            name: artis3n.tailscale.machine
+          vars:
+            tailscale_authkey: "{{ lookup('community.general.onepassword', 'Tailscale Token - Remote Server' , field='Anmeldedaten', vault='CI') }}"
+            tailscale_args: "--ssh --accept-dns=false --accept-routes=false --advertise-exit-node"
+          when: tailscale_running.rc != 0
+      when: tailscale|bool
+
+    - name: Configure basic settings
+      block:
+        - name: Set up base system
+          include_role:
+            name: base-system
+          vars:
+            system_timezone: "Europe/Berlin"
+
+        - name: Configure security settings
+          include_role:
+            name: security
+          vars:
+            disable_ssh_for_tailscale: "{{ tailscale|bool }}"
+
+        - name: Configure shell
+          include_role:
+            name: shell-config
+
+        - name: Set up monitoring tools
+          include_role:
+            name: monitoring-tools
+
+    - name: Set up backup tools
       include_role:
-        name: artis3n.tailscale.machine
+        name: backup-tools
       vars:
-        tailscale_authkey: "{{ tailscale_token }}"
-        tailscale_args: "--ssh --accept-dns=false --accept-routes=false --advertise-exit-node"
-      when: tailscale_running.rc != 0 and tailscale == True
+        install_backrest: true
+        backrest_server_name: "{{ server_name }}"
+        install_docker: "{{ docker|bool }}"
+      when: backrest|bool
 
-    - name: Run Server Setup
+    - name: Set up container tools
       include_role:
-        name: server-setup
+        name: container-tools
+      vars:
+        install_docker: true
+      when: docker|bool
 
-    - name: Run Proxmox Setup
+    - name: Set up Newt with Pangolin API integration
+      include_role:
+        name: pangolin-newt
+      vars:
+        install_newt: "{{ newt | bool }}"
+        pangolin_api_token: "{{ lookup('community.general.onepassword', 'Pangolin - Mannheim', field='Anmeldedaten', vault='CI') }}"
+        pangolin_api_endpoint: "{{ lookup('community.general.onepassword', 'Pangolin - Mannheim', field='Host-Name', vault='CI') }}"
+        pangolin_organization_id: "{{ lookup('community.general.onepassword', 'Pangolin - Mannheim', field='Organisation', vault='CI') }}"
+        site_name: "{{ server_name }}"
+      when: newt | bool
+
+    - name: Set up Proxmox
       include_role:
         name: proxmox-setup
-      when: proxmox == True
+      when: proxmox|bool
