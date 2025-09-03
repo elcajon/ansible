@@ -93,6 +93,7 @@ if [ "${installed_version}" = "none" ]; then
 elif [ "${installed_version}" != "${latest_version}" ]; then
   echo "Es gibt ein Update. Aktualisiere newt auf Version ${latest_version}."
   install_newt "${latest_version}"
+  systemctl restart newt.service
 else
   echo "newt ist bereits auf dem neuesten Stand."
 fi
