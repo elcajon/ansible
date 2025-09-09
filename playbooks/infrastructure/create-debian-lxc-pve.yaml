@@ -92,7 +92,7 @@
             cores: 16
             memory: 8192
             swap: 8192
-            disk: "local:256"
+            disk: "local-lvm:256"
             netif:
               net0: "name=eth0,gw={{ network_gateway }},ip={{ network_ip_mask }},bridge=vmbr0"
             nameserver: "{{ network_dns }}"
