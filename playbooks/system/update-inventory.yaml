@@ -23,3 +23,6 @@
     - name: Apply base-system role to remote hosts
       ansible.builtin.include_role:
         name: base-system
+    - name: Apply security role to remote hosts
+      ansible.builtin.include_role:
+        name: security
