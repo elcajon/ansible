@@ -99,7 +99,7 @@
             onboot: 1
             hostname: "{{ server_name }}"
             password: "{{ lxc_pw }}"
-            ostemplate: "local:vztmpl/debian-13-standard_13.1-1_amd64.tar.zst"
+            ostemplate: "local:vztmpl/debian-13-standard_13.1-2_amd64.tar.zst"
             timezone: host
             unprivileged: true
             features:
