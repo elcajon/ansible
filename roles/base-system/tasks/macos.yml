@@ -1,20 +1,9 @@
 ---
 # macOS-specific tasks for base-system
-
-- name: Check if Homebrew is installed
-  stat:
-    path: /usr/local/bin/brew
-  register: brew_binary_intel
-
 - name: Check if Homebrew is installed (Apple Silicon)
   stat:
     path: /opt/homebrew/bin/brew
   register: brew_binary_apple_silicon
-
-- name: Set Homebrew path for Intel Macs
-  set_fact:
-    brew_path: "/usr/local/bin/brew"
-  when: brew_binary_intel.stat.exists
 
 - name: Set Homebrew path for Apple Silicon Macs
   set_fact:
@@ -24,7 +13,7 @@
 - name: Check if Homebrew needs to be installed
   set_fact:
     install_homebrew: true
-  when: not brew_binary_intel.stat.exists and not brew_binary_apple_silicon.stat.exists
+  when: not brew_binary_apple_silicon.stat.exists
 
 - name: Install Homebrew
   shell: >
@@ -33,25 +22,25 @@
 
 - name: Update Homebrew
   shell: "{{ brew_path }} update"
-  when: brew_binary_intel.stat.exists or brew_binary_apple_silicon.stat.exists
+  when: brew_binary_apple_silicon.stat.exists
   register: brew_update_result
   changed_when: brew_update_result.stdout != ""
 
 - name: Upgrade all Homebrew packages
   shell: "{{ brew_path }} upgrade"
-  when: brew_binary_intel.stat.exists or brew_binary_apple_silicon.stat.exists
+  when: brew_binary_apple_silicon.stat.exists
   register: brew_upgrade_result
   changed_when: brew_upgrade_result.stdout != ""
 
 - name: Upgrade all Homebrew casks
   shell: "{{ brew_path }} upgrade --cask"
-  when: brew_binary_intel.stat.exists or brew_binary_apple_silicon.stat.exists
+  when: brew_binary_apple_silicon.stat.exists
   register: brew_cask_upgrade_result
   changed_when: brew_cask_upgrade_result.stdout != ""
 
 - name: Cleanup Homebrew (remove old versions)
   shell: "{{ brew_path }} cleanup"
-  when: brew_binary_intel.stat.exists or brew_binary_apple_silicon.stat.exists
+  when: brew_binary_apple_silicon.stat.exists
   register: brew_cleanup_result
   changed_when: brew_cleanup_result.stdout != ""
 

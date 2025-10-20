@@ -2,6 +2,10 @@
 ---
 # tasks file for security
 # Diese Datei enthält alle Aufgaben zur Absicherung des Systems
+- name: Lese installierte Pakete aus
+  ansible.builtin.package_facts:
+    manager: auto
+
 - name: SSH Hardening
   # Konfiguriert die SSH-Einstellungen für erhöhte Sicherheit
   lineinfile:
@@ -22,9 +26,10 @@
 - name: SSH neu starten
   # SSH-Dienst neu starten, um die Konfigurationsänderungen zu übernehmen
   systemd:
-    name: sshd
+    name: ssh
     state: restarted
   ignore_errors: true # Fehler ignorieren, falls SSH nicht installiert ist
+  when: "'openssh-server' in ansible_facts.packages"
 
 - name: SSH deaktivieren (Login nur über Tailscale)
   # Deaktiviert den SSH-Dienst, wenn der Server nur über Tailscale erreichbar sein soll
@@ -36,7 +41,7 @@
   loop:
     - ssh.service
     - ssh.socket
-  when: disable_ssh_for_tailscale | default(False)
+  when: disable_ssh_for_tailscale | default(False) or 'tailscale' in ansible_facts.packages
 
 - name: IPv4 & IPv6 Forwarding aktivieren
   # Aktiviert IP-Forwarding für IPv4 und IPv6
