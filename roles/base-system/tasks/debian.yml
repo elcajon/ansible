@@ -28,16 +28,30 @@
       - net-tools # Netzwerk-Diagnosetools (ifconfig, netstat, etc.)
     state: present
 
+- name: Lese installierte Pakete aus
+  ansible.builtin.package_facts:
+    manager: auto
+
 - name: Nicht benötigte Pakete deinstallieren
   apt:
     name:
-      - postfix # Mail Transfer Agent (nicht notwendig für die meisten Server)
       - exim4-base # Alternativer Mail Transfer Agent
     state: absent
     purge: yes # Konfigurationsdateien entfernen
     autoremove: yes # Abhängigkeiten mit entfernen
   ignore_errors: true # Fehler ignorieren, falls Pakete nicht installiert sind
   no_log: true # Keine Ausgabe im Log für sensible Informationen
+
+- name: Nicht benötigte Pakete deinstallieren - Proxmox
+  apt:
+    name:
+      - postfix # Mail Transfer Agent (nicht notwendig für die meisten Server)
+    state: absent
+    purge: yes # Konfigurationsdateien entfernen
+    autoremove: yes # Abhängigkeiten mit entfernen
+  ignore_errors: true # Fehler ignorieren, falls Pakete nicht installiert sind
+  no_log: true # Keine Ausgabe im Log für sensible Informationen
+  when: "not 'proxmox-ve' in ansible_facts.packages"
 
 - name: Aufräumen diverser Dateien
   file:
