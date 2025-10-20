@@ -1,5 +1,4 @@
 ---
-
 name: CI
 
 on:
@@ -16,7 +15,7 @@ jobs:
     strategy:
       fail-fast: true
       matrix:
-        ansible-version: ["2.16", "2.17"]
+        ansible-version: ["2.19"]
 
     steps:
       - name: Checkout code
