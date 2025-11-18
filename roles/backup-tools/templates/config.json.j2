@@ -4,27 +4,6 @@
   "instance": "{{ backrest_server_name }}",
   "repos": [
     {
-      "id": "onedrive",
-      "uri": "rclone:onedrive:Anwendungen/backrest/{{ backrest_server_name }}",
-      "guid": "{{ guid1 }}",
-      "password": "{{ backrest_repo_password }}",
-      "prunePolicy": {
-        "schedule": {
-          "cron": "0 2 * * *",
-          "clock": "CLOCK_LOCAL"
-        },
-        "maxUnusedPercent": 10
-      },
-      "checkPolicy": {
-        "schedule": {
-          "cron": "0 1 * * *",
-          "clock": "CLOCK_LOCAL"
-        },
-        "readDataSubsetPercent": 25
-      },
-      "commandPrefix": {}
-    },
-    {
       "id": "s3-elcajon",
       "uri": "s3:fsn1.your-objectstorage.com/elcajon/{{ backrest_server_name }}",
       "guid": "{{ guid2 }}",
@@ -51,53 +30,6 @@
     }
   ],
   "plans": [
-    {
-      "id": "full-backup-onedrive",
-      "repo": "onedrive",
-      "paths": [
-        "/root/.config/backrest",
-        "/root/.config/rclone",
-        "/root/.local",
-        "/srv"
-      ],
-      "excludes": [
-        "*.log",
-        "*.log.gz"
-      ],
-      "schedule": {
-        "cron": "0 4 * * *",
-        "clock": "CLOCK_LOCAL"
-      },
-      "retention": {
-        "policyTimeBucketed": {
-          "hourly": 24,
-          "daily": 30,
-          "monthly": 12
-        }
-      },
-      "hooks": [
-      {% if install_docker == True %}
-        {
-          "conditions": [
-            "CONDITION_SNAPSHOT_START"
-          ],
-          "onError": "ON_ERROR_RETRY_1MINUTE",
-          "actionCommand": {
-            "command": "#!/bin/bash\n\nBASE_DIR=\"/srv\"\nSTATE_FILE=\"/tmp/running_stacks\"\n> \"$STATE_FILE\"\n\nfor dir in \"$BASE_DIR\"/*/ ; do\n  if [ -f \"${dir}docker-compose.yml\" ] || \\\n     [ -f \"${dir}docker-compose.yaml\" ] || \\\n     [ -f \"${dir}compose.yml\" ] || \\\n     [ -f \"${dir}compose.yaml\" ]; then\n\n    cd \"$dir\" || continue\n    if docker compose ps --services --status=running | grep -q .; then\n      echo \"$dir\" >> \"$STATE_FILE\"\n      echo \"Stoppe laufenden Stack in $dir ...\"\n      docker compose down\n    else\n      echo \"Stack in $dir war bereits gestoppt, überspringe...\"\n    fi\n  fi\ndone\n\necho \"Laufende Stacks wurden in $STATE_FILE gespeichert.\"\n"
-          }
-        },
-        {
-          "conditions": [
-            "CONDITION_SNAPSHOT_END"
-          ],
-          "onError": "ON_ERROR_RETRY_1MINUTE",
-          "actionCommand": {
-            "command": "#!/bin/bash\n\nSTATE_FILE=\"/tmp/running_stacks\"\n\nif [ ! -f \"$STATE_FILE\" ]; then\n  echo \"Keine Stack-Status-Datei gefunden – nichts zu starten.\"\n  exit 0\nfi\n\nwhile IFS= read -r dir; do\n  if [ -d \"$dir\" ]; then\n    # Nach .env-Dateien suchen (erste gefundene nehmen)\n    env_file=\"\"\n    for file in \"$dir\"*.env; do\n      if [[ -f $file ]]; then\n        env_file=\"$file\"\n        break\n      fi\n    done\n    echo \"Starte Stack in $dir ...\"\n    if [[ -n \"$env_file\" ]]; then\n      echo \"Nutze Umgebungsdatei $env_file\"\n      (cd \"$dir\" && docker compose --env-file=\"$env_file\" up -d)\n    else\n      (cd \"$dir\" && docker compose up -d)\n    fi\n  fi\ndone < \"$STATE_FILE\"\n\nrm $STATE_FILE"
-          }
-        }
-      {% endif %}
-      ]
-    },
     {
       "id": "full-backup-s3",
       "repo": "s3-elcajon",
