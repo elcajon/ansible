@@ -16,8 +16,11 @@ get_installed_version() {
 
 # Funktion, um die neueste Version von GitHub zu holen
 get_latest_version() {
-  curl -s "https://api.github.com/repos/fosrl/newt/releases/latest" | grep -o '"tag_name": "[^"]*"' | cut -d'"' -f4
+  curl -s "https://api.github.com/repos/fosrl/newt/releases" \
+  | jq -r '.[] | select(.prerelease == false and .draft == false) | .tag_name' \
+  | head -n1
 }
+
 
 # Funktion zur Erkennung des Betriebssystems und der Architektur
 detect_os_arch() {
