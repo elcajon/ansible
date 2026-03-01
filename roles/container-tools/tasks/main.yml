@@ -9,3 +9,17 @@
   args:
     creates: /usr/bin/docker
   when: install_docker | default(False)
+
+- name: Aktuelle ctop-Version ermitteln
+  uri:
+    url: https://api.github.com/repos/bcicen/ctop/releases/latest
+    return_content: true
+  register: ctop_release
+  when: install_docker | default(False)
+
+- name: ctop installieren
+  get_url:
+    url: "https://github.com/bcicen/ctop/releases/download/{{ ctop_release.json.tag_name }}/ctop-{{ ctop_release.json.tag_name | regex_replace('^v', '') }}-linux-amd64"
+    dest: /usr/local/bin/ctop
+    mode: "0755"
+  when: install_docker | default(False)
