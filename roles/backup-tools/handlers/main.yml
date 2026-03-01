@@ -3,7 +3,7 @@
 # handlers file for backup-tools
 - name: Reload systemd
   ansible.builtin.systemd:
-    daemon_reload: yes
+    daemon_reload: true
 
 - name: Restart backrest
   ansible.builtin.systemd:

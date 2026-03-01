@@ -23,6 +23,19 @@
     - name: Apply base-system role to remote hosts
       ansible.builtin.include_role:
         name: base-system
+
     - name: Apply security role to remote hosts
       ansible.builtin.include_role:
         name: security
+
+    - name: Update Backup-Tools (Backrest, RCLONE)
+      ansible.builtin.include_tasks:
+        file: ../../roles/backup-tools/tasks/update.yml
+
+    - name: Update Container-Tools (ctop)
+      ansible.builtin.include_tasks:
+        file: ../../roles/container-tools/tasks/update.yml
+
+    - name: Update Newt
+      ansible.builtin.include_tasks:
+        file: ../../roles/pangolin-newt/tasks/update.yml

@@ -8,18 +8,31 @@
     rm get-docker.sh
   args:
     creates: /usr/bin/docker
-  when: install_docker | default(False)
+  when: install_docker | default(false)
+
+- name: Prüfe ob ctop bereits installiert ist
+  stat:
+    path: /usr/local/bin/ctop
+  register: ctop_binary
+  when: install_docker | default(false)
+
+- name: Host Architektur für ctop bestimmen
+  set_fact:
+    ctop_arch: >-
+      {{ 'arm64' if ansible_facts['architecture'] == 'aarch64' else 'amd64' }}
+  when: install_docker | default(false) and not ctop_binary.stat.exists
+
 
 - name: Aktuelle ctop-Version ermitteln
   uri:
     url: https://api.github.com/repos/bcicen/ctop/releases/latest
     return_content: true
   register: ctop_release
-  when: install_docker | default(False)
+  when: install_docker | default(false) and not ctop_binary.stat.exists
 
 - name: ctop installieren
   get_url:
-    url: "https://github.com/bcicen/ctop/releases/download/{{ ctop_release.json.tag_name }}/ctop-{{ ctop_release.json.tag_name | regex_replace('^v', '') }}-linux-amd64"
+    url: "https://github.com/bcicen/ctop/releases/download/{{ ctop_release.json.tag_name }}/ctop-{{ ctop_release.json.tag_name | regex_replace('^v', '') }}-linux-{{ ctop_arch }}"
     dest: /usr/local/bin/ctop
     mode: "0755"
-  when: install_docker | default(False)
+  when: install_docker | default(false) and not ctop_binary.stat.exists

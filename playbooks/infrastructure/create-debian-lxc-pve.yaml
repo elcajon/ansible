@@ -199,51 +199,5 @@
           when: tailscale_running.rc != 0
       when: tailscale|bool
 
-    - name: Configure basic settings
-      block:
-        - name: Set up base system
-          include_role:
-            name: base-system
-          vars:
-            system_timezone: "Europe/Berlin"
-
-        - name: Configure security settings
-          include_role:
-            name: security
-          vars:
-            disable_ssh_for_tailscale: "{{ tailscale|bool }}"
-
-        - name: Configure shell
-          include_role:
-            name: shell-config
-
-        - name: Set up monitoring tools
-          include_role:
-            name: monitoring-tools
-
-    - name: Set up backup tools
-      include_role:
-        name: backup-tools
-      vars:
-        install_backrest: true
-        backrest_server_name: "{{ server_name }}"
-        install_docker: "{{ docker|bool }}"
-      when: backrest|bool
-
-    - name: Set up container tools
-      include_role:
-        name: container-tools
-      vars:
-        install_docker: true
-      when: docker|bool
-
-    - name: Set up Newt with Pangolin API integration
-      include_role:
-        name: pangolin-newt
-      vars:
-        install_newt: "{{ newt | bool }}"
-        pangolin_api_token: "{{ lookup('community.general.onepassword', 'Pangolin - Mannheim', field='Anmeldedaten', vault='CI') }}"
-        pangolin_api_endpoint: "{{ lookup('community.general.onepassword', 'Pangolin - Mannheim', field='Host-Name', vault='CI') }}"
-        pangolin_organization_id: "{{ lookup('community.general.onepassword', 'Pangolin - Mannheim', field='Organisation', vault='CI') }}"
-        site_name: "{{ server_name }}"
-      when: newt | bool
+    - name: Apply server roles
+      include_tasks: ../includes/apply-server-roles.yaml

@@ -1,0 +1,38 @@
+---
+# Update-Tasks für ctop
+# Prüft ob ctop installiert ist und aktualisiert bei Bedarf
+
+- name: Prüfe ob ctop installiert ist
+  stat:
+    path: /usr/local/bin/ctop
+  register: ctop_binary
+
+- name: Installierte ctop-Version ermitteln
+  shell: ctop -v 2>&1 | grep -oP '[0-9]+\.[0-9]+\.[0-9]+'
+  register: ctop_installed_version
+  changed_when: false
+  failed_when: false
+  when: ctop_binary.stat.exists
+
+- name: Neueste ctop-Version von GitHub ermitteln
+  uri:
+    url: https://api.github.com/repos/bcicen/ctop/releases/latest
+    return_content: true
+  register: ctop_latest_release
+  when: ctop_binary.stat.exists
+
+- name: Host Architektur für ctop bestimmen
+  set_fact:
+    ctop_arch: >-
+      {{ 'arm64' if ansible_facts['architecture'] == 'aarch64' else 'amd64' }}
+  when: ctop_binary.stat.exists
+
+- name: ctop aktualisieren
+  get_url:
+    url: "https://github.com/bcicen/ctop/releases/download/{{ ctop_latest_release.json.tag_name }}/ctop-{{ ctop_latest_release.json.tag_name | regex_replace('^v', '') }}-linux-{{ ctop_arch }}"
+    dest: /usr/local/bin/ctop
+    mode: "0755"
+    force: true
+  when:
+    - ctop_binary.stat.exists
+    - ctop_installed_version.stdout | default('') != (ctop_latest_release.json.tag_name | regex_replace('^v', ''))

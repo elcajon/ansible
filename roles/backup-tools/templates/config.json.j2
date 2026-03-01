@@ -6,7 +6,7 @@
     {
       "id": "s3-elcajon",
       "uri": "s3:fsn1.your-objectstorage.com/elcajon/{{ backrest_server_name }}",
-      "guid": "{{ guid2 }}",
+      "guid": "{{ guid }}",
       "password": "{{ backrest_repo_password }}",
       "env": [
         "AWS_ACCESS_KEY_ID={{ AWS_ACCESS_KEY_ID }}",
@@ -56,7 +56,7 @@
         }
       },
       "hooks": [
-      {% if install_docker == True %}
+      {% if install_docker | bool %}
         {
           "conditions": [
             "CONDITION_SNAPSHOT_START"

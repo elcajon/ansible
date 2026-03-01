@@ -4,12 +4,12 @@
 
 - name: System aktualisieren und bereinigen
   apt:
-    update_cache: yes # APT Cache aktualisieren
-    upgrade: yes # Alle Pakete aktualisieren
-    autoremove: yes # Nicht mehr benötigte Pakete entfernen
-    autoclean: yes # Alte Paket-Archive bereinigen
-    clean: yes # Paket-Cache vollständig leeren
-    purge: yes # Konfigurationsdateien bei Deinstallation entfernen
+    update_cache: true
+    upgrade: true
+    autoremove: true
+    autoclean: true
+    clean: true
+    purge: true
 
 - name: Benötigte Pakete installieren
   apt:
@@ -34,24 +34,13 @@
 
 - name: Nicht benötigte Pakete deinstallieren
   apt:
-    name:
-      - exim4-base # Alternativer Mail Transfer Agent
+    name: >-
+      {{ ['exim4-base'] + ([] if 'proxmox-ve' in ansible_facts.packages else ['postfix']) }}
     state: absent
-    purge: yes # Konfigurationsdateien entfernen
-    autoremove: yes # Abhängigkeiten mit entfernen
-  ignore_errors: true # Fehler ignorieren, falls Pakete nicht installiert sind
-  no_log: true # Keine Ausgabe im Log für sensible Informationen
-
-- name: Nicht benötigte Pakete deinstallieren - Proxmox
-  apt:
-    name:
-      - postfix # Mail Transfer Agent (nicht notwendig für die meisten Server)
-    state: absent
-    purge: yes # Konfigurationsdateien entfernen
-    autoremove: yes # Abhängigkeiten mit entfernen
-  ignore_errors: true # Fehler ignorieren, falls Pakete nicht installiert sind
-  no_log: true # Keine Ausgabe im Log für sensible Informationen
-  when: "not 'proxmox-ve' in ansible_facts.packages"
+    purge: true
+    autoremove: true
+  ignore_errors: true
+  no_log: true
 
 - name: Aufräumen diverser Dateien
   file:
