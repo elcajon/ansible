@@ -24,7 +24,7 @@
 - name: Host Architektur für ctop bestimmen
   set_fact:
     ctop_arch: >-
-      {{ 'arm64' if ansible_architecture == 'aarch64' else 'amd64' }}
+      {{ 'arm64' if ansible_facts['architecture'] == 'aarch64' else 'amd64' }}
   when: ctop_binary.stat.exists
 
 - name: ctop aktualisieren

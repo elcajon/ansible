@@ -11,7 +11,7 @@
 - name: Host Architektur bestimmen
   set_fact:
     detected_arch: >-
-      {{ 'arm64' if ansible_architecture == 'aarch64' else ansible_architecture }}
+      {{ 'arm64' if ansible_facts['architecture'] == 'aarch64' else ansible_facts['architecture'] }}
   when: backrest_binary.stat.exists
 
 - name: Installierte Backrest-Version ermitteln
@@ -58,5 +58,6 @@
 - name: RCLONE aktualisieren
   shell: curl https://rclone.org/install.sh | bash
   register: rclone_update_result
-  changed_when: "'rclone is already the latest version' not in rclone_update_result.stderr"
+  changed_when: "'already installed' not in rclone_update_result.stdout"
+  failed_when: rclone_update_result.rc not in [0, 3]
   when: rclone_binary.stat.exists

@@ -30,7 +30,7 @@
 - name: Newt Architektur bestimmen
   set_fact:
     newt_arch: >-
-      {{ 'arm64' if ansible_architecture == 'aarch64' else 'amd64' }}
+      {{ 'arm64' if ansible_facts['architecture'] == 'aarch64' else 'amd64' }}
   when: newt_binary.stat.exists
 
 - name: Newt aktualisieren

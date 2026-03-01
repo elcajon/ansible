@@ -4,8 +4,8 @@
 - name: Host Architektur bestimmen
   set_fact:
     detected_arch: >-
-      {{ 'arm64' if ansible_architecture == 'aarch64'
-         else ansible_architecture }}
+      {{ 'arm64' if ansible_facts['architecture'] == 'aarch64'
+         else ansible_facts['architecture'] }}
 
 - name: Backrest herunterladen und installieren
   shell: |
