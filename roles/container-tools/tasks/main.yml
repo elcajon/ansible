@@ -22,6 +22,7 @@
       {{ 'arm64' if ansible_facts['architecture'] == 'aarch64' else 'amd64' }}
   when: install_docker | default(false) and not ctop_binary.stat.exists
 
+
 - name: Aktuelle ctop-Version ermitteln
   uri:
     url: https://api.github.com/repos/bcicen/ctop/releases/latest
