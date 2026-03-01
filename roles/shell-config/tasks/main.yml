@@ -8,7 +8,6 @@
 
 - name: Oh-My-Zsh installieren (root)
   shell: |
-    rm -rf /root/.oh-my-zsh
     wget -q https://github.com/robbyrussell/oh-my-zsh/raw/master/tools/install.sh -O - | zsh
   args:
     creates: /root/.oh-my-zsh

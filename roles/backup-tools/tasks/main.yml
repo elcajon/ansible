@@ -14,27 +14,28 @@
     tar -xzf backrest_Linux_{{ detected_arch }}.tar.gz -C /tmp
     rm backrest_Linux_{{ detected_arch }}.tar.gz
     /tmp/install.sh
-  when: install_backrest | default(False)
+  args:
+    creates: /usr/local/bin/backrest
+  when: install_backrest | default(false)
 
-- name: Erstelle GUID-Strings
+- name: GUID-String erstellen
   set_fact:
-    guid1: '{{ lookup(''pipe'', ''python3 -c "import secrets; print(secrets.token_hex(32))"'') }}'
-    guid2: '{{ lookup(''pipe'', ''python3 -c "import secrets; print(secrets.token_hex(32))"'') }}'
-  when: install_backrest | default(False)
+    guid: '{{ lookup(''pipe'', ''python3 -c "import secrets; print(secrets.token_hex(32))"'') }}'
+  when: install_backrest | default(false)
 
 - name: Backrest Konfigurationsverzeichnis erstellen
   ansible.builtin.file:
     path: /root/.config/backrest
     state: directory
     mode: "0755"
-  when: install_backrest | default(False)
+  when: install_backrest | default(false)
 
 - name: Backrest Konfiguration aus Template erzeugen
   ansible.builtin.template:
     src: config.json.j2
     dest: /root/.config/backrest/config.json
     force: false
-  when: install_backrest | default(False)
+  when: install_backrest | default(false)
 
 - name: Wrapper-Skript für Backrest kopieren
   template:
@@ -43,7 +44,7 @@
     owner: root
     group: root
     mode: "0755"
-  when: install_backrest | default(False)
+  when: install_backrest | default(false)
 
 - name: Systemd Service Datei für Backrest kopieren
   template:
@@ -55,7 +56,7 @@
   notify:
     - Reload systemd
     - Restart backrest
-  when: install_backrest | default(False)
+  when: install_backrest | default(false)
 
 - name: RCLONE installieren
   shell: |

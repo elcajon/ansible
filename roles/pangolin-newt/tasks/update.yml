@@ -1,0 +1,54 @@
+---
+# Update-Tasks für Newt
+# Prüft ob Newt installiert ist und aktualisiert bei Bedarf
+
+- name: Prüfe ob Newt installiert ist
+  stat:
+    path: /usr/local/bin/newt
+  register: newt_binary
+
+- name: Installierte Newt-Version ermitteln
+  shell: newt --version 2>&1 | grep -oP '[0-9]+\.[0-9]+\.[0-9]+'
+  register: newt_installed_version
+  changed_when: false
+  failed_when: false
+  when: newt_binary.stat.exists
+
+- name: Neueste Newt-Version von GitHub ermitteln
+  uri:
+    url: https://api.github.com/repos/fosrl/newt/releases
+    return_content: true
+  register: newt_releases
+  when: newt_binary.stat.exists
+
+- name: Neueste stabile Newt-Version bestimmen
+  set_fact:
+    newt_latest_version: >-
+      {{ (newt_releases.json | selectattr('prerelease', 'equalto', false) | selectattr('draft', 'equalto', false) | first).tag_name }}
+  when: newt_binary.stat.exists
+
+- name: Newt Architektur bestimmen
+  set_fact:
+    newt_arch: >-
+      {{ 'arm64' if ansible_architecture == 'aarch64' else 'amd64' }}
+  when: newt_binary.stat.exists
+
+- name: Newt aktualisieren
+  get_url:
+    url: "https://github.com/fosrl/newt/releases/download/{{ newt_latest_version }}/newt_linux_{{ newt_arch }}"
+    dest: /usr/local/bin/newt
+    mode: "0755"
+    force: true
+  when:
+    - newt_binary.stat.exists
+    - newt_installed_version.stdout | default('') != newt_latest_version
+  register: newt_update_result
+
+- name: Newt Service neustarten nach Update
+  ansible.builtin.systemd:
+    name: newt
+    state: restarted
+  when:
+    - newt_binary.stat.exists
+    - newt_update_result is defined
+    - newt_update_result is changed

@@ -1,0 +1,62 @@
+---
+# Update-Tasks für Backrest und RCLONE
+# Prüft ob die Tools installiert sind und aktualisiert sie bei Bedarf
+
+# --- Backrest Update ---
+- name: Prüfe ob Backrest installiert ist
+  stat:
+    path: /usr/local/bin/backrest
+  register: backrest_binary
+
+- name: Host Architektur bestimmen
+  set_fact:
+    detected_arch: >-
+      {{ 'arm64' if ansible_architecture == 'aarch64' else ansible_architecture }}
+  when: backrest_binary.stat.exists
+
+- name: Installierte Backrest-Version ermitteln
+  shell: backrest version 2>&1 | grep -oP '[0-9]+\.[0-9]+\.[0-9]+'
+  register: backrest_installed_version
+  changed_when: false
+  failed_when: false
+  when: backrest_binary.stat.exists
+
+- name: Neueste Backrest-Version von GitHub ermitteln
+  uri:
+    url: https://api.github.com/repos/garethgeorge/backrest/releases/latest
+    return_content: true
+  register: backrest_latest_release
+  when: backrest_binary.stat.exists
+
+- name: Backrest aktualisieren
+  shell: |
+    curl -s https://api.github.com/repos/garethgeorge/backrest/releases/latest | \
+      grep "browser_download_url" | grep "Linux_{{ detected_arch }}.tar.gz" | cut -d '"' -f 4 | xargs curl -LO
+    tar -xzf backrest_Linux_{{ detected_arch }}.tar.gz -C /tmp
+    rm -f backrest_Linux_{{ detected_arch }}.tar.gz
+    /tmp/install.sh
+  when:
+    - backrest_binary.stat.exists
+    - backrest_installed_version.stdout | default('') != (backrest_latest_release.json.tag_name | regex_replace('^v', ''))
+  register: backrest_update_result
+
+- name: Backrest Service neustarten nach Update
+  ansible.builtin.systemd:
+    name: backrest
+    state: restarted
+  when:
+    - backrest_binary.stat.exists
+    - backrest_update_result is defined
+    - backrest_update_result is changed
+
+# --- RCLONE Update ---
+- name: Prüfe ob RCLONE installiert ist
+  stat:
+    path: /usr/bin/rclone
+  register: rclone_binary
+
+- name: RCLONE aktualisieren
+  shell: curl https://rclone.org/install.sh | bash
+  register: rclone_update_result
+  changed_when: "'rclone is already the latest version' not in rclone_update_result.stderr"
+  when: rclone_binary.stat.exists
