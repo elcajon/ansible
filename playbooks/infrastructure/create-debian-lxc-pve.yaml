@@ -195,7 +195,7 @@
             name: artis3n.tailscale.machine
           vars:
             tailscale_authkey: "{{ lookup('community.general.onepassword', 'Tailscale Token' , field='Anmeldedaten', vault='CI') }}"
-            tailscale_args: "--ssh --accept-dns=false --accept-routes=false --advertise-exit-node"
+            tailscale_args: "--ssh --accept-dns=true --accept-routes=false --advertise-exit-node"
           when: tailscale_running.rc != 0
       when: tailscale|bool
 
