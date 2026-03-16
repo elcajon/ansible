@@ -116,7 +116,7 @@
             name: artis3n.tailscale.machine
           vars:
             tailscale_authkey: "{{ tailscale_token }}"
-            tailscale_args: "--ssh --accept-dns=false --accept-routes=false --advertise-exit-node"
+            tailscale_args: "--ssh --accept-dns=true --accept-routes=false --advertise-exit-node"
           when: tailscale_running.rc != 0
       when: tailscale | bool
 
