@@ -18,14 +18,14 @@
     -H "Content-Type: application/json"
     -d '{
       "name":"{{ site_name }}",
-      "exitNodeId":{{ site_defaults.data.exitNodeId }},
-      "pubKey":"{{ site_defaults.data.publicKey }}",
-      "subnet":"{{ site_defaults.data.subnet }}",
-      "newtId":"{{ site_defaults.data.newtId }}",
-      "secret":"{{ site_defaults.data.newtSecret }}",
-      "address":"{{ site_defaults.data.clientAddress }}",
+      "exitNodeId":{{ (site_defaults.data | default({})).exitNodeId | default('') }},
+      "pubKey":"{{ (site_defaults.data | default({})).publicKey | default('') }}",
+      "subnet":"{{ (site_defaults.data | default({})).subnet | default('') }}",
+      "newtId":"{{ (site_defaults.data | default({})).newtId | default('') }}",
+      "secret":"{{ (site_defaults.data | default({})).newtSecret | default('') }}",
+      "address":"{{ (site_defaults.data | default({})).clientAddress | default('') }}",
       "type":"{{ pangolin_site_type }}"
     }'
     {{ pangolin_api_endpoint }}/org/{{ pangolin_organization_id }}/site
   register: create_site_result
-  when: site_defaults is defined and site_defaults.data is defined
+  when: site_defaults is defined and site_defaults.data is defined and site_defaults.data is not none
