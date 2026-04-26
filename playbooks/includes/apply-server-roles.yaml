@@ -40,8 +40,8 @@
     name: pangolin-newt
   vars:
     install_newt: "{{ newt | bool }}"
-    pangolin_api_token: "{{ lookup('community.general.onepassword', 'Pangolin - Mannheim', field='Anmeldedaten', vault='CI') }}"
-    pangolin_api_endpoint: "{{ lookup('community.general.onepassword', 'Pangolin - Mannheim', field='Host-Name', vault='CI') }}"
-    pangolin_organization_id: "{{ lookup('community.general.onepassword', 'Pangolin - Mannheim', field='Organisation', vault='CI') }}"
+    pangolin_api_token: "{{ lookup('community.general.onepassword', 'Pangolin - Weinheim', field='Anmeldedaten', vault='CI') }}"
+    pangolin_api_endpoint: "{{ lookup('community.general.onepassword', 'Pangolin - Weinheim', field='Host-Name', vault='CI') }}"
+    pangolin_organization_id: "{{ lookup('community.general.onepassword', 'Pangolin - Weinheim', field='Organisation', vault='CI') }}"
     site_name: "{{ server_name }}"
   when: newt | bool
