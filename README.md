@@ -38,7 +38,7 @@ ansible-playbook playbooks/system/update-inventory.yaml
 | `security` | SSH, Firewall, Fail2ban |
 | `shell-config` | ZSH mit Oh-My-Zsh |
 | `container-tools` | Docker |
-| `backup-tools` | Backrest Backup mit S3 |
+| `backup-tools` | RCLONE für Cloud-Storage |
 | `monitoring-tools` | System-Monitoring |
 | `pangolin-newt` | Pangolin Newt Reverse-Proxy |
 | `proxmox-setup` | Proxmox-Host Konfiguration |
@@ -59,8 +59,6 @@ Alle Secrets werden über `community.general.onepassword` aus dem Tresor **CI** 
 | `Tailscale Token - Remote Server` | `Anmeldedaten` |
 | `Pangolin - Mannheim` | `Anmeldedaten`, `Host-Name`, `Organisation` |
 | `MBA SSH - Public Key` | `Benutzername` |
-| `Backrest Hetzner` | `Anmeldedaten` |
-| `S3 - Hetzner` | `Access Key`, `Secret Key` |
 | `Rclone Config` | *(Dokument, geladen via `onepassword_doc`)* |
 
 ## Lizenz

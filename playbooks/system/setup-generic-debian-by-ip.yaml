@@ -17,11 +17,6 @@
       private: false
       default: True
 
-    - name: backrest
-      prompt: Install Backrest? [True/False]
-      private: false
-      default: True
-
     - name: tailscale
       prompt: Install Tailscale? [True/False]
       private: false
@@ -60,7 +55,6 @@
             ansible_user: root
             server_name: "{{ server_name }}"
             docker: "{{ docker|bool }}"
-            backrest: "{{ backrest|bool }}"
             tailscale: "{{ tailscale|bool }}"
             newt: "{{ newt|bool }}"
             proxmox: "{{ proxmox|bool }}"
