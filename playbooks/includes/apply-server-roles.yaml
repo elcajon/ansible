@@ -1,6 +1,6 @@
 ---
 # Gemeinsame Rollen-Anwendung für alle Setup-Playbooks
-# Erwartet Variablen: docker, backrest, tailscale, newt, server_name
+# Erwartet Variablen: docker, tailscale, newt, server_name
 - name: Set up base system
   include_role:
     name: base-system
@@ -22,11 +22,6 @@
 - name: Set up backup tools
   include_role:
     name: backup-tools
-  vars:
-    install_backrest: "{{ backrest | bool }}"
-    backrest_server_name: "{{ server_name }}"
-    install_docker: "{{ docker | bool }}"
-  when: backrest | bool
 
 - name: Set up container tools
   include_role:

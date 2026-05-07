@@ -28,7 +28,7 @@
       ansible.builtin.include_role:
         name: security
 
-    - name: Update Backup-Tools (Backrest, RCLONE)
+    - name: Update Backup-Tools (RCLONE)
       ansible.builtin.include_tasks:
         file: ../../roles/backup-tools/tasks/update.yml
 
