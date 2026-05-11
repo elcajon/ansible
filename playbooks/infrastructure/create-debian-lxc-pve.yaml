@@ -11,6 +11,7 @@
     proxmox_token_secret: "{{ lookup('community.general.onepassword', 'Proxmox API' , field='Anmeldedaten', vault='CI') }}"
     mba_pubkey: "{{ lookup('community.general.onepassword', 'MBA SSH - Public Key' , field='Benutzername', vault='CI') }}"
     tailscale_token: "{{ lookup('community.general.onepassword', 'Tailscale Token' , field='Anmeldedaten', vault='CI') }}"
+    proxmox_pool: "{{ lookup('community.general.onepassword', 'Proxmox API' , field='Pool', vault='CI') }}"
 
   vars_prompt:
     - name: server_name
@@ -97,6 +98,7 @@
             ostemplate: "local:vztmpl/debian-13-standard_13.1-2_amd64.tar.zst"
             timezone: host
             unprivileged: true
+            pool: "{{ proxmox_pool }}"
             features:
               - nesting=1
           register: lxc_info
