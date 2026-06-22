@@ -69,29 +69,43 @@
     - ssh_hardening is changed or ssh_include is changed
 
 - name: SSH deaktivieren (Login nur über Tailscale)
-  # Deaktiviert den SSH-Dienst, wenn der Server nur über Tailscale erreichbar sein soll
-  # Dies erhöht die Sicherheit, da kein SSH-Zugriff vom öffentlichen Internet möglich ist
+  # Deaktiviert den SSH-Dienst, wenn der Server nur über Tailscale erreichbar sein soll.
+  # masked: true verhindert, dass der Dienst von irgendetwas wieder gestartet wird –
+  # insbesondere durch dpkg-postinst bei einem openssh-server-Update. Ohne Maskierung
+  # kommt SSH nach Paketupdate + Reboot wieder hoch (jedes Mal "changed").
+  # Unkritisch, da der Zugang über Tailscale SSH (--ssh) erfolgt.
   systemd:
     name: "{{ item }}"
     state: stopped
     enabled: false
+    masked: true
   loop:
     - ssh.service
     - ssh.socket
   when: disable_ssh_for_tailscale | default(False) or 'tailscale' in ansible_facts.packages
 
-- name: IPv4 & IPv6 Forwarding aktivieren
-  # Aktiviert IP-Forwarding für IPv4 und IPv6
-  # Notwendig für Routing-Funktionen, VPN-Server und Container-Netzwerke
-  sysctl:
-    name: "{{ item }}"
-    value: 1
-    sysctl_set: true
-    state: present
-    reload: true
-  loop:
-    - net.ipv4.ip_forward
-    - net.ipv6.conf.all.forwarding
+- name: IPv4 & IPv6 Forwarding persistent konfigurieren
+  # Notwendig u. a. für Tailscale-Exit-Nodes (auch in LXC-Containern).
+  # Wird als sysctl-Drop-in verwaltet (nicht live gesetzt), damit der Task
+  # idempotent bleibt: In LXC fällt der Live-Wert nach einem Reboot auf 0
+  # zurück, ein live-prüfender sysctl-Task würde dann bei jedem Lauf "changed"
+  # melden. systemd-sysctl wendet das Drop-in bei jedem Boot an.
+  copy:
+    dest: /etc/sysctl.d/99-ip-forward.conf
+    owner: root
+    group: root
+    mode: "0644"
+    content: |
+      # Managed by Ansible (security role) - nicht manuell bearbeiten
+      net.ipv4.ip_forward = 1
+      net.ipv6.conf.all.forwarding = 1
+  register: ip_forward_config
+
+- name: IP-Forwarding live anwenden
+  # Nur wenn sich die Drop-in-Datei geändert hat -> kein churn im Normalbetrieb.
+  command: sysctl --system
+  changed_when: false
+  when: ip_forward_config is changed
 
 - name: Unattended-Upgrades Konfiguration kopieren
   # Konfiguriert automatische Sicherheitsupdates
