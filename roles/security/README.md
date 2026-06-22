@@ -8,8 +8,14 @@ This role implements basic security measures on a Debian-based server.
   so it cannot be overridden by cloud-init or distribution drop-ins. The
   effective configuration is validated with `sshd -t` before SSH is restarted,
   and SSH is only restarted when the configuration actually changed.
-- Optional: Disable SSH service (for systems that should only be accessible via Tailscale)
-- Enable IPv4 & IPv6 forwarding
+- Optional: Disable (and mask) the SSH service for systems that should only be
+  accessible via Tailscale. Masking ensures the service stays down even after an
+  `openssh-server` package update would otherwise re-enable it. Access is
+  expected via Tailscale SSH.
+- Enable IPv4 & IPv6 forwarding via a persistent sysctl drop-in
+  (`/etc/sysctl.d/99-ip-forward.conf`), e.g. for Tailscale exit nodes. Managed as
+  a file (not set live) so it stays idempotent even in LXC containers, where the
+  live value resets to 0 on reboot.
 - Configuration of unattended-upgrades for automatic security updates,
   including automatic reboots when an update requires one
 - Maintenance checks: ensures time synchronization (systemd-timesyncd) is
