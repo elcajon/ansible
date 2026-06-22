@@ -1,0 +1,49 @@
+#SPDX-License-Identifier: MIT-0
+---
+# Regelmäßige Wartungs-Checks: Zeitsynchronisation und Reboot-Bedarf.
+
+- name: Container-Status ermitteln
+  # In Containern (z. B. Proxmox LXC) wird die Uhr vom Host gesteuert; ein
+  # eigener Zeitsync-Dienst kann die Zeit nicht setzen und meldet bei jedem Lauf
+  # fälschlich "changed". Solche Hosts werden bei der Zeitsync übersprungen.
+  ansible.builtin.set_fact:
+    is_container: "{{ ansible_facts['virtualization_role'] == 'guest' and ansible_facts['virtualization_type'] in ['lxc', 'systemd-nspawn', 'docker', 'container', 'openvz', 'podman'] }}"
+
+- name: Vorhandene Dienste ermitteln
+  ansible.builtin.service_facts:
+  when: not (is_container | bool)
+
+- name: systemd-timesyncd installieren, falls keine Zeitsynchronisation vorhanden
+  # Korrekte Uhrzeit ist sicherheitsrelevant (TLS-Validierung, Log-Forensik).
+  apt:
+    name: systemd-timesyncd
+    state: present
+  when:
+    - not (is_container | bool)
+    - "'chrony.service' not in ansible_facts.services"
+    - "'ntp.service' not in ansible_facts.services"
+    - "'systemd-timesyncd.service' not in ansible_facts.services"
+
+- name: Zeitsynchronisation (systemd-timesyncd) aktivieren
+  systemd:
+    name: systemd-timesyncd
+    enabled: true
+    state: started
+  when:
+    - not (is_container | bool)
+    - "'chrony.service' not in ansible_facts.services"
+    - "'ntp.service' not in ansible_facts.services"
+
+- name: Prüfen, ob ein Reboot erforderlich ist
+  stat:
+    path: /var/run/reboot-required
+  register: reboot_required_file
+
+- name: Hinweis ausgeben, wenn ein Reboot aussteht
+  ansible.builtin.debug:
+    msg: >-
+      ACHTUNG: {{ inventory_hostname }} benötigt einen Reboot
+      (/var/run/reboot-required vorhanden). Wird via unattended-upgrades
+      um {{ unattended_automatic_reboot_time }} Uhr automatisch ausgeführt,
+      sofern unattended_automatic_reboot aktiv ist.
+  when: reboot_required_file.stat.exists
