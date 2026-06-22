@@ -6,30 +6,67 @@
   ansible.builtin.package_facts:
     manager: auto
 
-- name: SSH Hardening
-  # Konfiguriert die SSH-Einstellungen für erhöhte Sicherheit
+- name: Sicherstellen, dass sshd_config Drop-ins zuerst lädt
+  # OpenSSH wertet bei den meisten Optionen den ersten Treffer aus. Das Drop-in
+  # greift daher nur, wenn die Include-Zeile am Dateianfang steht.
   lineinfile:
     path: /etc/ssh/sshd_config
-    regexp: "{{ item.regexp }}"
-    line: "{{ item.line }}"
-  loop:
-    - {
-        regexp: "^#?PermitRootLogin.*",
-        line: "PermitRootLogin prohibit-password", # Nur SSH-Key-Authentifizierung für Root erlauben
-      }
-    - { regexp: "^#AddressFamily any", line: "AddressFamily inet" } # Nur IPv4 für SSH verwenden
-    - {
-        regexp: "^#PasswordAuthentication yes",
-        line: "PasswordAuthentication no", # Passwort-Authentifizierung deaktivieren
-      }
+    line: "Include /etc/ssh/sshd_config.d/*.conf"
+    regexp: '^\s*Include\s+/etc/ssh/sshd_config\.d/\*\.conf'
+    insertbefore: BOF
+    firstmatch: true
+  register: ssh_include
+  when: "'openssh-server' in ansible_facts.packages"
+
+- name: SSH Hardening (Drop-in-Konfiguration)
+  # Schreibt die Hardening-Einstellungen als Drop-in. Dieses wird nach der
+  # Haupt-sshd_config und nach Cloud-Init-Drop-ins geladen und kann daher
+  # nicht versehentlich überschrieben werden (z. B. PasswordAuthentication).
+  copy:
+    dest: /etc/ssh/sshd_config.d/99-hardening.conf
+    owner: root
+    group: root
+    mode: "0644"
+    content: |
+      # Managed by Ansible (security role) - nicht manuell bearbeiten
+      {% for option in ssh_hardening_options %}
+      {{ option }}
+      {% endfor %}
+  register: ssh_hardening
+  when: "'openssh-server' in ansible_facts.packages"
+
+- name: Privilege-Separation-Verzeichnis für die sshd-Validierung sicherstellen
+  # sshd -t benötigt /run/sshd. Bei nur über Tailscale erreichbaren Hosts ist
+  # der SSH-Dienst gestoppt, daher fehlt das Verzeichnis (tmpfs). Es wird sonst
+  # vom Dienst beim Start angelegt.
+  file:
+    path: /run/sshd
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+  when:
+    - "'openssh-server' in ansible_facts.packages"
+    - ssh_hardening is changed or ssh_include is changed
+
+- name: SSH-Konfiguration validieren
+  # Prüft die gesamte effektive Konfiguration inkl. des neuen Drop-ins, bevor
+  # SSH neu gestartet wird – verhindert ein Aussperren durch Syntaxfehler.
+  command: sshd -t
+  changed_when: false
+  when:
+    - "'openssh-server' in ansible_facts.packages"
+    - ssh_hardening is changed or ssh_include is changed
 
 - name: SSH neu starten
-  # SSH-Dienst neu starten, um die Konfigurationsänderungen zu übernehmen
+  # SSH-Dienst nur neu starten, wenn sich die Konfiguration geändert hat
   systemd:
     name: ssh
     state: restarted
   ignore_errors: true # Fehler ignorieren, falls SSH nicht installiert ist
-  when: "'openssh-server' in ansible_facts.packages"
+  when:
+    - "'openssh-server' in ansible_facts.packages"
+    - ssh_hardening is changed or ssh_include is changed
 
 - name: SSH deaktivieren (Login nur über Tailscale)
   # Deaktiviert den SSH-Dienst, wenn der Server nur über Tailscale erreichbar sein soll
@@ -65,6 +102,7 @@
     owner: root
     group: root
     mode: "0755"
+  register: unattended_upgrades_config
 
 - name: Unattended-Upgrades aktivieren
   # Aktiviert automatische Updates über das Debconf-System
@@ -73,7 +111,12 @@
     question: unattended-upgrades/enable_auto_updates
     value: "true"
     vtype: boolean
+  register: unattended_upgrades_debconf
 
 - name: Unattended-Upgrades konfigurieren
-  # Wendet die Konfiguration an ohne interaktive Eingabe
+  # Wendet die Konfiguration nur an, wenn sich Template oder Debconf geändert haben
   command: dpkg-reconfigure -f noninteractive unattended-upgrades
+  when: unattended_upgrades_config is changed or unattended_upgrades_debconf is changed
+
+- name: System-Wartung (Zeitsynchronisation & Reboot-Check)
+  ansible.builtin.import_tasks: maintenance.yml

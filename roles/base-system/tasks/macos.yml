@@ -56,5 +56,5 @@
 - name: Run macOS software update (install all updates)
   shell: softwareupdate -i -a
   register: softwareupdate_result
-  changed_when: "'No updates are available.' not in softwareupdate_result.stdout"
+  changed_when: "'No updates are available.' not in (softwareupdate_result.stdout + softwareupdate_result.stderr)"
   failed_when: softwareupdate_result.rc != 0 and softwareupdate_result.rc != 2

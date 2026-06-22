@@ -1,0 +1,8 @@
+---
+# Host-spezifische Variablen für den Proxmox-Hypervisor.
+
+# Kein unkontrollierter automatischer Reboot durch unattended-upgrades:
+# Auf dem Hypervisor würde ein automatischer Reboot alle laufenden VMs/LXCs
+# mitnehmen. Sicherheitsupdates werden weiterhin installiert, der Reboot muss
+# hier aber bewusst manuell (oder in einem Wartungsfenster) erfolgen.
+unattended_automatic_reboot: false

@@ -116,16 +116,17 @@ Unattended-Upgrade::Remove-Unused-Dependencies "true";
 
 // Automatically reboot *WITHOUT CONFIRMATION* if
 //  the file /var/run/reboot-required is found after the upgrade
-//Unattended-Upgrade::Automatic-Reboot "false";
+// Managed by Ansible (security role) via unattended_automatic_reboot
+Unattended-Upgrade::Automatic-Reboot "{{ unattended_automatic_reboot | ternary('true', 'false') }}";
 
 // Automatically reboot even if there are users currently logged in
 // when Unattended-Upgrade::Automatic-Reboot is set to true
-//Unattended-Upgrade::Automatic-Reboot-WithUsers "true";
+Unattended-Upgrade::Automatic-Reboot-WithUsers "true";
 
 // If automatic reboot is enabled and needed, reboot at the specific
 // time instead of immediately
 //  Default: "now"
-//Unattended-Upgrade::Automatic-Reboot-Time "02:00";
+Unattended-Upgrade::Automatic-Reboot-Time "{{ unattended_automatic_reboot_time }}";
 
 // Use apt bandwidth limit feature, this example limits the download
 // speed to 70kb/sec
