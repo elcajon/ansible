@@ -1,0 +1,12 @@
+#SPDX-License-Identifier: MIT-0
+---
+# handlers file for komodo-periphery
+- name: Reload systemd
+  ansible.builtin.systemd:
+    daemon_reload: true
+
+- name: Enable and start periphery
+  ansible.builtin.systemd:
+    name: periphery
+    state: restarted
+    enabled: true

@@ -1,0 +1,60 @@
+#SPDX-License-Identifier: MIT-0
+---
+# tasks file for komodo-periphery
+# Installiert und konfiguriert den Komodo Periphery Agent als systemd-Dienst
+# (statt im Container) – analog zur pangolin-newt-Rolle.
+
+- name: Onboarding via Komodo API (nur Erstinstall)
+  ansible.builtin.import_tasks: komodo_api.yml
+  when: install_periphery | default(false)
+
+- name: Komodo-Verzeichnisse anlegen
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+  loop:
+    - /etc/komodo
+    - "{{ periphery_root_directory }}"
+    - "{{ periphery_root_directory }}/keys"
+  when: install_periphery | default(false)
+
+- name: Update-/Installations-Skript für Periphery kopieren
+  ansible.builtin.template:
+    src: periphery_update.j2
+    dest: /etc/cron.daily/periphery_update
+    owner: root
+    group: root
+    mode: "0755"
+  when: install_periphery | default(false)
+
+- name: Initialer Download der Periphery-Binary
+  ansible.builtin.command: /etc/cron.daily/periphery_update
+  args:
+    creates: "{{ periphery_bin }}"
+  when: install_periphery | default(false)
+
+- name: Periphery-Konfiguration erzeugen
+  ansible.builtin.template:
+    src: periphery.config.toml.j2
+    dest: "{{ periphery_config_path }}"
+    owner: root
+    group: root
+    mode: "0600"
+  notify:
+    - Enable and start periphery
+  when: install_periphery | default(false)
+
+- name: Periphery Systemd Service erzeugen
+  ansible.builtin.template:
+    src: periphery.service.j2
+    dest: /etc/systemd/system/periphery.service
+    owner: root
+    group: root
+    mode: "0644"
+  notify:
+    - Reload systemd
+    - Enable and start periphery
+  when: install_periphery | default(false)

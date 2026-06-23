@@ -1,0 +1,17 @@
+# Managed by Ansible (komodo-periphery role) - nicht manuell bearbeiten
+# Adaptiert aus der bisherigen docker-compose-Konfiguration.
+
+root_directory = "{{ periphery_root_directory }}"
+stack_dir = "{{ periphery_stack_dir }}"
+disable_terminals = {{ periphery_disable_terminals | ternary('true', 'false') }}
+include_disk_mounts = [{% for mount in periphery_include_disk_mounts %}"{{ mount }}"{% if not loop.last %}, {% endif %}{% endfor %}]
+
+# Outbound-Mode: Periphery verbindet sich aktiv zu Komodo Core.
+core_address = "{{ komodo_core_address }}"
+connect_as = "{{ periphery_connect_as }}"
+{% if periphery_onboarding_key is defined and periphery_onboarding_key | length > 0 %}
+
+# Einmaliger Onboarding-Key (nur beim Erstinstall vorhanden). Periphery erzeugt
+# beim ersten Connect sein eigenes Keypair; danach wird dieser Eintrag entfernt.
+onboarding_key = "{{ periphery_onboarding_key }}"
+{% endif %}
