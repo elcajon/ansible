@@ -1,0 +1,37 @@
+#SPDX-License-Identifier: MIT-0
+---
+# Holt einmalig – nur beim Erstinstall – einen Onboarding-Key von Komodo Core.
+# Sobald Periphery seinen eigenen Key (periphery.key) erzeugt hat, ist der
+# Onboarding-Key überflüssig und wird nicht erneut angefordert.
+
+- name: Prüfen ob Periphery bereits onboarded ist (eigener Key vorhanden)
+  ansible.builtin.stat:
+    path: "{{ periphery_root_directory }}/keys/periphery.key"
+  register: periphery_keyfile
+
+- name: Onboarding-Key von Komodo Core anfordern
+  # Admin-only API. Läuft vom Control-Node aus, damit die API-Credentials nicht
+  # auf die Zielhosts gelangen.
+  ansible.builtin.uri:
+    url: "{{ komodo_api_url }}/write/CreateOnboardingKey"
+    method: POST
+    headers:
+      X-Api-Key: "{{ komodo_api_key }}"
+      X-Api-Secret: "{{ komodo_api_secret }}"
+    body_format: json
+    body:
+      name: "ansible-{{ periphery_connect_as }}"
+    status_code: 200
+  delegate_to: localhost
+  become: false
+  no_log: true
+  register: komodo_onboarding
+  when: not periphery_keyfile.stat.exists
+
+- name: Onboarding-Key übernehmen
+  ansible.builtin.set_fact:
+    periphery_onboarding_key: "{{ komodo_onboarding.json.private_key }}"
+  no_log: true
+  when:
+    - not periphery_keyfile.stat.exists
+    - komodo_onboarding is not skipped

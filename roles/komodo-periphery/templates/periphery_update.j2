@@ -1,0 +1,71 @@
+#!/bin/bash
+# Komodo Periphery Update Script (von Ansible verwaltet)
+# Hält die Periphery-Binary auf der neuesten Komodo-Version (kein Pinning).
+
+set -euo pipefail
+
+PERIPHERYPATH="{{ periphery_bin }}"
+REPO="moghtech/komodo"
+
+# Installierte Version auslesen
+get_installed_version() {
+  if [ -x "$PERIPHERYPATH" ]; then
+    "$PERIPHERYPATH" --version 2>&1 | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -n1
+  else
+    echo "none"
+  fi
+}
+
+# Neueste stabile Version (Release-Tag) von GitHub holen
+get_latest_tag() {
+  curl -s "https://api.github.com/repos/${REPO}/releases/latest" | jq -r '.tag_name'
+}
+
+# Architektur bestimmen (Komodo liefert nur x86_64 und aarch64)
+detect_arch() {
+  case "$(uname -m)" in
+    x86_64)         echo "x86_64";;
+    aarch64|arm64)  echo "aarch64";;
+    *) echo "Nicht unterstützte Architektur: $(uname -m)" >&2; exit 1;;
+  esac
+}
+
+install_periphery() {
+  tag="$1"
+  arch="$(detect_arch)"
+  url="https://github.com/${REPO}/releases/download/${tag}/periphery-${arch}"
+  tmp="$(mktemp)"
+
+  echo "Lade periphery ${tag} (${arch}) herunter..."
+  if curl -fL -o "$tmp" "$url"; then
+    install -m 0755 "$tmp" "$PERIPHERYPATH"
+    rm -f "$tmp"
+    echo "Update erfolgreich."
+  else
+    rm -f "$tmp"
+    echo "Download fehlgeschlagen. URL: ${url}" >&2
+    exit 1
+  fi
+}
+
+installed_version="$(get_installed_version)"
+latest_tag="$(get_latest_tag)"
+latest_version="${latest_tag#v}"
+
+echo "Installierte Version: ${installed_version}"
+echo "Neueste Version: ${latest_version}"
+echo "System: $(detect_arch)"
+
+if [ "$installed_version" = "none" ]; then
+  echo "periphery ist nicht installiert. Installation wird gestartet."
+  install_periphery "$latest_tag"
+elif [ "$installed_version" != "$latest_version" ]; then
+  echo "Update verfügbar. Aktualisiere periphery auf ${latest_version}."
+  install_periphery "$latest_tag"
+  # Dienst nur neu starten, wenn er bereits existiert/läuft
+  if systemctl list-unit-files periphery.service >/dev/null 2>&1; then
+    systemctl restart periphery.service
+  fi
+else
+  echo "periphery ist bereits auf dem neuesten Stand."
+fi

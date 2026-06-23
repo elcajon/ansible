@@ -102,8 +102,10 @@
   register: ip_forward_config
 
 - name: IP-Forwarding live anwenden
-  # Nur wenn sich die Drop-in-Datei geändert hat -> kein churn im Normalbetrieb.
-  command: sysctl --system
+  # Nur die eigene Drop-in-Datei anwenden (nicht "sysctl --system"): in LXC sind
+  # diverse fremde Keys read-only, ein systemweites Anwenden würde mit rc=1
+  # scheitern. Nur wenn sich die Datei geändert hat -> kein churn im Normalbetrieb.
+  command: sysctl -p /etc/sysctl.d/99-ip-forward.conf
   changed_when: false
   when: ip_forward_config is changed
 

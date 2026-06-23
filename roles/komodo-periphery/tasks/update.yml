@@ -1,0 +1,56 @@
+#SPDX-License-Identifier: MIT-0
+---
+# Update-Tasks für Komodo Periphery.
+# Periphery wird nur auf Docker-Hosts verwaltet. Auf diesen wird die
+# Konfiguration idempotent abgeglichen (Erstinstall für Übergangsfälle bzw.
+# Übernahme von Config-Änderungen) und anschließend die Binary auf die neueste
+# Komodo-Version aktualisiert.
+
+- name: Prüfen ob Docker installiert ist
+  ansible.builtin.command: docker --version
+  register: docker_check
+  changed_when: false
+  failed_when: false
+
+- name: Periphery auf Docker-Hosts verwalten
+  when: docker_check.rc == 0
+  block:
+    - name: Periphery installieren/konfigurieren (idempotent)
+      ansible.builtin.include_tasks: main.yml
+      vars:
+        install_periphery: true
+
+    - name: Installierte Periphery-Version ermitteln
+      ansible.builtin.shell: "{{ periphery_bin }} --version 2>&1 | grep -oE '[0-9]+\\.[0-9]+\\.[0-9]+' | head -n1"
+      register: periphery_installed_version
+      changed_when: false
+      failed_when: false
+
+    - name: Neueste Komodo-Version von GitHub ermitteln
+      ansible.builtin.uri:
+        url: https://api.github.com/repos/moghtech/komodo/releases/latest
+        return_content: true
+      register: komodo_release
+
+    - name: Periphery-Architektur bestimmen
+      ansible.builtin.set_fact:
+        periphery_arch: "{{ 'aarch64' if ansible_facts['architecture'] == 'aarch64' else 'x86_64' }}"
+
+    - name: Neueste Version normalisieren (ohne führendes v)
+      ansible.builtin.set_fact:
+        periphery_latest_version: "{{ komodo_release.json.tag_name | regex_replace('^v', '') }}"
+
+    - name: Periphery-Binary aktualisieren
+      ansible.builtin.get_url:
+        url: "https://github.com/moghtech/komodo/releases/download/{{ komodo_release.json.tag_name }}/periphery-{{ periphery_arch }}"
+        dest: "{{ periphery_bin }}"
+        mode: "0755"
+        force: true
+      when: periphery_installed_version.stdout | default('') != periphery_latest_version
+      register: periphery_update_result
+
+    - name: Periphery neustarten nach Update
+      ansible.builtin.systemd:
+        name: periphery
+        state: restarted
+      when: periphery_update_result is changed

@@ -39,3 +39,11 @@
     - name: Update Newt
       ansible.builtin.include_tasks:
         file: ../../roles/pangolin-newt/tasks/update.yml
+
+    - name: Update/Install Komodo Periphery (Docker-Hosts)
+      ansible.builtin.include_role:
+        name: komodo-periphery
+        tasks_from: update.yml
+      vars:
+        komodo_api_key: "{{ lookup('community.general.onepassword', 'Komodo', field='Key', vault='CI') }}"
+        komodo_api_secret: "{{ lookup('community.general.onepassword', 'Komodo', field='Secret', vault='CI') }}"

@@ -1,0 +1,38 @@
+#SPDX-License-Identifier: MIT-0
+---
+# defaults file for komodo-periphery
+
+# Periphery installieren (wird beim Setup an docker gekoppelt)
+install_periphery: false
+
+# --- Komodo Core Anbindung ---
+# Adresse, zu der Periphery sich verbindet (Outbound-Mode). Bewusst die
+# Tailscale-IP von Core statt eines Hostnamens: komplett unabhängig von DNS/
+# MagicDNS und vermeidet den /etc/hosts-Kurznamen-Fallstrick auf dem Core-Host
+# selbst (dort löst "pangolin" auf 127.0.1.1 -> Connection refused). Die
+# Tailscale-IP ist pro Node stabil.
+# Fallback bei IP-Wechsel: "http://pangolin.stern-chimera.ts.net:8080" (FQDN
+# via MagicDNS) – NICHT der Kurzname "pangolin".
+komodo_core_address: "http://100.90.80.191:8080"
+
+# Komodo-Core-API-Endpoint für Admin-Calls (CreateOnboardingKey).
+# Achtung: NICHT die öffentliche UI-URL (op://CI/Komodo/URL) verwenden – die
+# liegt hinter dem Pangolin-Auth-Proxy und lehnt API-Calls mit 302 ab. Die API
+# wird intern direkt von Core bedient, daher dieselbe Adresse wie core_address.
+komodo_api_url: "{{ komodo_core_address }}"
+komodo_api_key: ""
+komodo_api_secret: ""
+
+# Servername, unter dem sich der Agent bei Komodo meldet (= Hostname).
+periphery_connect_as: "{{ server_name | default(inventory_hostname) }}"
+
+# --- Pfade (gespiegelt aus der docker-compose) ---
+periphery_bin: "/usr/local/bin/periphery"
+periphery_config_path: "/etc/komodo/periphery.config.toml"
+periphery_root_directory: "/srv/komodo-periphery"
+periphery_stack_dir: "/srv"
+
+# --- Verhalten (gespiegelt aus der docker-compose) ---
+periphery_disable_terminals: false
+periphery_include_disk_mounts:
+  - /etc/hostname

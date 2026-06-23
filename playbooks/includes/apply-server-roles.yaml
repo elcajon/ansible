@@ -30,6 +30,15 @@
     install_docker: "{{ docker | bool }}"
   when: docker | bool
 
+- name: Set up Komodo Periphery (on Docker hosts)
+  include_role:
+    name: komodo-periphery
+  vars:
+    install_periphery: "{{ docker | bool }}"
+    komodo_api_key: "{{ lookup('community.general.onepassword', 'Komodo', field='Key', vault='CI') }}"
+    komodo_api_secret: "{{ lookup('community.general.onepassword', 'Komodo', field='Secret', vault='CI') }}"
+  when: docker | bool
+
 - name: Set up Newt with Pangolin API integration
   include_role:
     name: pangolin-newt

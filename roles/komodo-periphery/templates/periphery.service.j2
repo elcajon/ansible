@@ -1,0 +1,13 @@
+[Unit]
+Description=Komodo Periphery Agent
+After=network-online.target docker.service
+Wants=network-online.target
+
+[Service]
+ExecStart=/bin/sh -lc "{{ periphery_bin }} --config-path {{ periphery_config_path }}"
+Restart=always
+RestartSec=3
+User=root
+
+[Install]
+WantedBy=multi-user.target
