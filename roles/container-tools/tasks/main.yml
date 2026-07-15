@@ -1,8 +1,10 @@
-#SPDX-License-Identifier: MIT-0
+# SPDX-License-Identifier: MIT-0
 ---
 # tasks file for container-tools
-- name: Docker installieren
-  shell: |
+# Upstream-Installer get.docker.com ist der offiziell empfohlene Weg,
+# daher bewusst curl im Shell-Task statt get_url.
+- name: Docker installieren # noqa: command-instead-of-module
+  ansible.builtin.shell: |
     curl -fsSL https://get.docker.com -o get-docker.sh
     sh get-docker.sh
     rm get-docker.sh
@@ -11,28 +13,28 @@
   when: install_docker | default(false)
 
 - name: Prüfe ob ctop bereits installiert ist
-  stat:
+  ansible.builtin.stat:
     path: /usr/local/bin/ctop
   register: ctop_binary
   when: install_docker | default(false)
 
 - name: Host Architektur für ctop bestimmen
-  set_fact:
+  ansible.builtin.set_fact:
     ctop_arch: >-
       {{ 'arm64' if ansible_facts['architecture'] == 'aarch64' else 'amd64' }}
   when: install_docker | default(false) and not ctop_binary.stat.exists
 
-
 - name: Aktuelle ctop-Version ermitteln
-  uri:
+  ansible.builtin.uri:
     url: https://api.github.com/repos/bcicen/ctop/releases/latest
     return_content: true
   register: ctop_release
   when: install_docker | default(false) and not ctop_binary.stat.exists
 
-- name: ctop installieren
-  get_url:
-    url: "https://github.com/bcicen/ctop/releases/download/{{ ctop_release.json.tag_name }}/ctop-{{ ctop_release.json.tag_name | regex_replace('^v', '') }}-linux-{{ ctop_arch }}"
+- name: Ctop installieren
+  ansible.builtin.get_url:
+    url: "https://github.com/bcicen/ctop/releases/download/{{ ctop_release.json.tag_name }}/ctop-{{
+      ctop_release.json.tag_name | regex_replace('^v', '') }}-linux-{{ ctop_arch }}"
     dest: /usr/local/bin/ctop
     mode: "0755"
   when: install_docker | default(false) and not ctop_binary.stat.exists

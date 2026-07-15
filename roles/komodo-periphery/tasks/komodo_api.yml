@@ -1,4 +1,4 @@
-#SPDX-License-Identifier: MIT-0
+# SPDX-License-Identifier: MIT-0
 ---
 # Holt einmalig – nur beim Erstinstall – einen Onboarding-Key von Komodo Core.
 # Sobald Periphery seinen eigenen Key (periphery.key) erzeugt hat, ist der

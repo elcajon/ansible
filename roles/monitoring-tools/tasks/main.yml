@@ -1,4 +1,4 @@
-#SPDX-License-Identifier: MIT-0
+# SPDX-License-Identifier: MIT-0
 ---
 # tasks file for monitoring-tools
 - name: HTop Config Verzeichnis erstellen
@@ -8,9 +8,9 @@
     mode: "0755"
 
 - name: Systemd Service Datei für HTop kopieren
-  template:
+  ansible.builtin.template:
     src: htoprc.j2
     dest: /root/.config/htop/htoprc
     owner: root
     group: root
-    mode: 0644
+    mode: "0644"

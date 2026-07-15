@@ -1,10 +1,12 @@
 ---
 collections:
   - name: community.general
-    # Provides: onepassword lookup, many utilities
+  # Provides: onepassword lookup, many utilities
   - name: hetzner.hcloud
-    # Provides: hetzner.hcloud.server module for Hetzner Cloud automation
+  # Provides: hetzner.hcloud.server module for Hetzner Cloud automation
   - name: community.proxmox
-    # Provides: community.proxmox.proxmox module for Proxmox LXC/VM management
+  # Provides: community.proxmox.proxmox module for Proxmox LXC/VM management
   - name: artis3n.tailscale
     # Provides: artis3n.tailscale.machine role for Tailscale setup
+  - name: ansible.posix
+  # Provides: ansible.posix.sysctl module for kernel parameter management

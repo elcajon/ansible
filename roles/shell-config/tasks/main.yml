@@ -1,25 +1,29 @@
-#SPDX-License-Identifier: MIT-0
+# SPDX-License-Identifier: MIT-0
 ---
 # tasks file for shell-config
 - name: ZSH als Standard-Shell setzen
-  user:
+  ansible.builtin.user:
     name: root
     shell: /usr/bin/zsh
 
-- name: Oh-My-Zsh installieren (root)
-  shell: |
+# Upstream-Installer wird bewusst per wget | zsh ausgeführt (offiziell
+# empfohlener Installationsweg von Oh-My-Zsh).
+- name: Oh-My-Zsh installieren (root) # noqa: command-instead-of-module
+  ansible.builtin.shell: |
+    set -o pipefail
     wget -q https://github.com/robbyrussell/oh-my-zsh/raw/master/tools/install.sh -O - | zsh
   args:
     creates: /root/.oh-my-zsh
+    executable: /bin/bash
 
 - name: ZSH Theme anpassen
-  lineinfile:
+  ansible.builtin.lineinfile:
     path: /root/.zshrc
     regexp: '^ZSH_THEME="robbyrussell"'
     line: 'ZSH_THEME="maran"'
 
 - name: ZSH Aliases und Updates
-  blockinfile:
+  ansible.builtin.blockinfile:
     path: /root/.zshrc
     block: |
       alias update='apt update && apt upgrade -y && apt dist-upgrade -y && apt autoclean -y && apt autoremove -y && apt purge -y'

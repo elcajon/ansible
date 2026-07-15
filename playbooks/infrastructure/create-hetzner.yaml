@@ -4,7 +4,7 @@
   gather_facts: false
 
   vars:
-    hcloud_token: "{{ lookup('community.general.onepassword', 'Hetzner Cloud API' , field='token', vault='CI') }}"
+    hcloud_token: "{{ lookup('community.general.onepassword', 'Hetzner Cloud API', field='token', vault='CI') }}"
 
   vars_prompt:
     - name: server_name
@@ -34,28 +34,28 @@
     - name: docker
       prompt: Install Docker? [True/False]
       private: false
-      default: True
+      default: "true"
 
     - name: tailscale
       prompt: Install Tailscale? [True/False]
       private: false
-      default: True
+      default: "true"
 
     - name: newt
       prompt: Install Newt? [True/False]
       private: false
-      default: True
+      default: "true"
 
   tasks:
     - name: Read Tailscale node information for server name
-      command: "tailscale ip -4 {{ server_name }}"
+      ansible.builtin.command: "tailscale ip -4 {{ server_name }}"
       register: tailscale_info
       failed_when: false
       changed_when: false
       ignore_errors: true
 
     - name: Save Tailscale IP for further use
-      set_fact:
+      ansible.builtin.set_fact:
         tailscale_ip: "{{ tailscale_info.stdout | default('') }}"
         use_existing_server: "{{ tailscale_info.rc is defined and tailscale_info.rc == 0 and tailscale_info.stdout != '' }}"
 
@@ -72,7 +72,7 @@
       when: not use_existing_server
 
     - name: Add server to dynamic hostfile
-      add_host:
+      ansible.builtin.add_host:
         name: "{{ use_existing_server | ternary(tailscale_ip, created_server.hcloud_server.ipv4_address) }}"
         groups: hetzner_single
         ansible_user: root
@@ -82,7 +82,7 @@
         newt: "{{ newt | bool }}"
 
     - name: Wait for new server to become available
-      wait_for:
+      ansible.builtin.wait_for:
         timeout: 120
         port: 22
         host: "{{ created_server.hcloud_server.ipv4_address }}"
@@ -93,26 +93,26 @@
   gather_facts: true
 
   vars:
-    tailscale_token: "{{ lookup('community.general.onepassword', 'Tailscale Token - Remote Server' , field='Anmeldedaten', vault='CI') }}"
+    tailscale_token: "{{ lookup('community.general.onepassword', 'Tailscale Token - Remote Server', field='Anmeldedaten', vault='CI') }}"
     ansible_python_interpreter: /usr/bin/python3
 
   tasks:
     - name: Install Tailscale if needed
+      when: tailscale | bool
+
       block:
         - name: Check if Tailscale is installed and running
-          ansible.builtin.shell: pgrep tailscaled
+          ansible.builtin.command: pgrep tailscaled
           register: tailscale_running
           failed_when: false
           changed_when: false
 
         - name: Install and run Tailscale
-          include_role:
+          ansible.builtin.include_role:
             name: artis3n.tailscale.machine
           vars:
             tailscale_authkey: "{{ tailscale_token }}"
             tailscale_args: "--ssh --accept-dns=true --accept-routes=false --advertise-exit-node"
           when: tailscale_running.rc != 0
-      when: tailscale | bool
-
     - name: Apply server roles
-      include_tasks: ../includes/apply-server-roles.yaml
+      ansible.builtin.include_tasks: ../includes/apply-server-roles.yaml

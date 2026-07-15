@@ -4,7 +4,7 @@
   gather_facts: false
 
   vars:
-    tailscale_token: "{{ lookup('community.general.onepassword', 'Tailscale Token - Remote Server' , field='Anmeldedaten', vault='CI') }}"
+    tailscale_token: "{{ lookup('community.general.onepassword', 'Tailscale Token - Remote Server', field='Anmeldedaten', vault='CI') }}"
 
   vars_prompt:
     - name: server_name
@@ -15,56 +15,56 @@
     - name: docker
       prompt: Install Docker? [True/False]
       private: false
-      default: True
+      default: "true"
 
     - name: tailscale
       prompt: Install Tailscale? [True/False]
       private: false
-      default: True
+      default: "true"
 
     - name: proxmox
       prompt: Is this a Proxmox server? [True/False]
       private: false
-      default: False
+      default: "false"
 
     - name: newt
       prompt: Install Newt? [True/False]
       private: false
-      default: False
+      default: "false"
 
   tasks:
     - name: Check Tailscale configuration
       block:
         - name: Read Tailscale node information for server name
-          command: "tailscale ip -4 {{ server_name }}"
+          ansible.builtin.command: "tailscale ip -4 {{ server_name }}"
           register: tailscale_info
           failed_when: false
           changed_when: false
 
         - name: Save Tailscale IP for further use
-          set_fact:
+          ansible.builtin.set_fact:
             tailscale_ip: "{{ tailscale_info.stdout }}"
             use_tailscale: "{{ tailscale_info.rc == 0 and tailscale_info.stdout != '' }}"
 
     - name: Prepare for Ansible configuration
       block:
         - name: Add target host to dynamic inventory
-          add_host:
-            name: "{{ use_tailscale|default(false)|ternary(tailscale_ip, server_name) }}"
+          ansible.builtin.add_host:
+            name: "{{ use_tailscale | default(false) | ternary(tailscale_ip, server_name) }}"
             groups: generic_debian
             ansible_user: root
             server_name: "{{ server_name }}"
-            docker: "{{ docker|bool }}"
-            tailscale: "{{ tailscale|bool }}"
-            newt: "{{ newt|bool }}"
-            proxmox: "{{ proxmox|bool }}"
+            docker: "{{ docker | bool }}"
+            tailscale: "{{ tailscale | bool }}"
+            newt: "{{ newt | bool }}"
+            proxmox: "{{ proxmox | bool }}"
 
         - name: Wait for server to become reachable
-          wait_for:
+          ansible.builtin.wait_for:
             timeout: 120
             port: 22
             host: "{{ server_name }}"
-          when: not use_tailscale|default(false)
+          when: not use_tailscale | default(false)
 
 - name: Configure server
   hosts: generic_debian
@@ -74,26 +74,26 @@
 
   tasks:
     - name: Set up Tailscale
+      when: tailscale | bool
+
       block:
         - name: Check if Tailscale is already running
-          ansible.builtin.shell: pgrep tailscaled
+          ansible.builtin.command: pgrep tailscaled
           register: tailscale_running
           failed_when: false
           changed_when: false
 
         - name: Install and start Tailscale
-          include_role:
+          ansible.builtin.include_role:
             name: artis3n.tailscale.machine
           vars:
-            tailscale_authkey: "{{ lookup('community.general.onepassword', 'Tailscale Token - Remote Server' , field='Anmeldedaten', vault='CI') }}"
+            tailscale_authkey: "{{ lookup('community.general.onepassword', 'Tailscale Token - Remote Server', field='Anmeldedaten', vault='CI') }}"
             tailscale_args: "--ssh --accept-dns=true --accept-routes=false --advertise-exit-node"
           when: tailscale_running.rc != 0
-      when: tailscale|bool
-
     - name: Apply server roles
-      include_tasks: ../includes/apply-server-roles.yaml
+      ansible.builtin.include_tasks: ../includes/apply-server-roles.yaml
 
     - name: Set up Proxmox
-      include_role:
+      ansible.builtin.include_role:
         name: proxmox-setup
-      when: proxmox|bool
+      when: proxmox | bool

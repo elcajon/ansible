@@ -1,4 +1,4 @@
-#SPDX-License-Identifier: MIT-0
+# SPDX-License-Identifier: MIT-0
 ---
 # vars file for backup-tools
-rclone_config: "{{ lookup('community.general.onepassword_doc', 'Rclone Config' , vault='CI') }}"
+rclone_config: "{{ lookup('community.general.onepassword_doc', 'Rclone Config', vault='CI') }}"

@@ -25,10 +25,10 @@ This role implements basic security measures on a Debian-based server.
 
 | Variable | Default Value | Description |
 |----------|---------------|-------------|
-| disable_ssh_for_tailscale | `False` | If `True`, the SSH service is disabled (for hosts that should only be reachable via Tailscale). |
-| ssh_hardening_options | see [defaults/main.yml](defaults/main.yml) | List of directives written to the SSH hardening drop-in. `PermitRootLogin prohibit-password` is kept because Ansible connects as root via SSH key. |
-| unattended_automatic_reboot | `True` | Automatically reboot when `/var/run/reboot-required` exists after an unattended upgrade (e.g. kernel/glibc updates). Set to `False` per host (e.g. Proxmox hypervisors) to avoid uncontrolled reboots. |
-| unattended_automatic_reboot_time | `"02:00"` | Time of day for the automatic reboot. |
+| security_disable_ssh_for_tailscale | `False` | If `True`, the SSH service is disabled (for hosts that should only be reachable via Tailscale). |
+| security_ssh_hardening_options | see [defaults/main.yml](defaults/main.yml) | List of directives written to the SSH hardening drop-in. `PermitRootLogin prohibit-password` is kept because Ansible connects as root via SSH key. |
+| security_unattended_automatic_reboot | `True` | Automatically reboot when `/var/run/reboot-required` exists after an unattended upgrade (e.g. kernel/glibc updates). Set to `False` per host (e.g. Proxmox hypervisors) to avoid uncontrolled reboots. |
+| security_unattended_automatic_reboot_time | `"02:00"` | Time of day for the automatic reboot. |
 
 ## Example
 
@@ -36,7 +36,7 @@ This role implements basic security measures on a Debian-based server.
 - hosts: all
   roles:
     - role: security
-      disable_ssh_for_tailscale: True
+      security_disable_ssh_for_tailscale: True
 ```
 
 Disable the automatic reboot on a specific host (e.g. a Proxmox hypervisor) via
@@ -44,7 +44,7 @@ Disable the automatic reboot on a specific host (e.g. a Proxmox hypervisor) via
 
 ```yaml
 # host_vars/proxmox.yml
-unattended_automatic_reboot: false
+security_unattended_automatic_reboot: false
 ```
 
 ## Dependencies
