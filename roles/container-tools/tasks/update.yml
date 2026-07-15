@@ -14,11 +14,20 @@
   failed_when: false
   when: ctop_binary.stat.exists
 
+# Redirect von /releases/latest statt der API nutzen: kein Rate-Limit,
+# und "latest" enthält nie Prereleases oder Drafts
 - name: Neueste ctop-Version von GitHub ermitteln
   uri:
-    url: https://api.github.com/repos/bcicen/ctop/releases/latest
-    return_content: true
+    url: https://github.com/bcicen/ctop/releases/latest
+    follow_redirects: none
+    status_code: 302
   register: ctop_latest_release
+  when: ctop_binary.stat.exists
+
+# Redirect-Ziel ist .../releases/tag/v0.7.7 → basename liefert den Tag mit v-Präfix
+- name: Neuesten ctop-Tag bestimmen
+  set_fact:
+    ctop_latest_tag: "{{ ctop_latest_release.location | basename }}"
   when: ctop_binary.stat.exists
 
 - name: Host Architektur für ctop bestimmen
@@ -29,10 +38,10 @@
 
 - name: ctop aktualisieren
   get_url:
-    url: "https://github.com/bcicen/ctop/releases/download/{{ ctop_latest_release.json.tag_name }}/ctop-{{ ctop_latest_release.json.tag_name | regex_replace('^v', '') }}-linux-{{ ctop_arch }}"
+    url: "https://github.com/bcicen/ctop/releases/download/{{ ctop_latest_tag }}/ctop-{{ ctop_latest_tag | regex_replace('^v', '') }}-linux-{{ ctop_arch }}"
     dest: /usr/local/bin/ctop
     mode: "0755"
     force: true
   when:
     - ctop_binary.stat.exists
-    - ctop_installed_version.stdout | default('') != (ctop_latest_release.json.tag_name | regex_replace('^v', ''))
+    - ctop_installed_version.stdout | default('') != (ctop_latest_tag | regex_replace('^v', ''))
