@@ -15,10 +15,11 @@ get_installed_version() {
 }
 
 # Funktion, um die neueste Version von GitHub zu holen
+# Nutzt den Redirect von /releases/latest statt der API (kein Rate-Limit,
+# und "latest" enthält nie Prereleases oder Drafts)
 get_latest_version() {
-  curl -s "https://api.github.com/repos/fosrl/newt/releases" \
-  | jq -r '.[] | select(.prerelease == false and .draft == false) | .tag_name' \
-  | head -n1
+  curl -fsI -o /dev/null -w '%{redirect_url}' "https://github.com/fosrl/newt/releases/latest" \
+  | sed 's|.*/tag/||'
 }
 
 
@@ -66,25 +67,37 @@ install_newt() {
   # Temporäre Datei für den Download
   TMP_FILE="/tmp/newt_${latest}"
 
-  # Download
-  curl -L -o "${TMP_FILE}" "${url}"
-  curl_status=$?
-
-  if [ $curl_status -eq 0 ]; then
-    echo "Installiere newt nach ${NEWTPATH}"
-    sudo mv "${TMP_FILE}" "${NEWTPATH}"
-    sudo chmod +x "${NEWTPATH}"
-    echo "Update erfolgreich."
-  else
+  # Download: -f sorgt dafür, dass bei HTTP-Fehlern (404) nichts
+  # geschrieben wird und curl mit Fehler beendet
+  if ! curl -fL -o "${TMP_FILE}" "${url}"; then
     echo "Download fehlgeschlagen. URL: ${url}"
     echo "Bitte überprüfen Sie die Verbindung oder ob die Version für Ihre Architektur verfügbar ist."
+    rm -f "${TMP_FILE}"
     exit 1
   fi
+
+  # Heruntergeladene Datei validieren, bevor die Binary ersetzt wird
+  chmod +x "${TMP_FILE}"
+  if ! "${TMP_FILE}" --version >/dev/null 2>&1; then
+    echo "Heruntergeladene Datei ist keine funktionierende newt-Binary. Installation abgebrochen."
+    rm -f "${TMP_FILE}"
+    exit 1
+  fi
+
+  echo "Installiere newt nach ${NEWTPATH}"
+  sudo mv "${TMP_FILE}" "${NEWTPATH}"
+  sudo chmod +x "${NEWTPATH}"
+  echo "Update erfolgreich."
 }
 
 # Hauptprogramm
 installed_version="$(get_installed_version)"
 latest_version="$(get_latest_version)"
+
+if [ -z "${latest_version}" ]; then
+  echo "Konnte die neueste Version nicht ermitteln (keine Verbindung zu GitHub?). Abbruch." >&2
+  exit 1
+fi
 
 echo "Installierte Version: ${installed_version}"
 echo "Neueste Version: ${latest_version}"
