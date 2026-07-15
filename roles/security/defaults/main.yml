@@ -1,16 +1,16 @@
-#SPDX-License-Identifier: MIT-0
+# SPDX-License-Identifier: MIT-0
 ---
 # defaults file for security
 
 # SSH-Dienst deaktivieren, wenn der Host nur über Tailscale erreichbar sein soll
-disable_ssh_for_tailscale: False
+security_disable_ssh_for_tailscale: false
 
 # --- SSH-Hardening ---
 # Wird als Drop-in nach /etc/ssh/sshd_config.d/99-hardening.conf geschrieben,
 # damit es nicht von Cloud-Init- oder Distributions-Drop-ins überschrieben wird.
 # PermitRootLogin bleibt "prohibit-password", da sich Ansible als root per
 # SSH-Key verbindet – nur Passwort-Login für root wird unterbunden.
-ssh_hardening_options:
+security_ssh_hardening_options:
   - PermitRootLogin prohibit-password
   - PasswordAuthentication no
   - KbdInteractiveAuthentication no
@@ -22,6 +22,6 @@ ssh_hardening_options:
 # --- Unattended-Upgrades ---
 # Automatischer Reboot, wenn nach einem Update /var/run/reboot-required existiert
 # (z. B. nach Kernel- oder glibc-Updates). Pro Host abschaltbar, z. B. auf
-# Proxmox-Hypervisoren via host_vars: unattended_automatic_reboot: false
-unattended_automatic_reboot: true
-unattended_automatic_reboot_time: "02:00"
+# Proxmox-Hypervisoren via host_vars: security_unattended_automatic_reboot: false
+security_unattended_automatic_reboot: true
+security_unattended_automatic_reboot_time: "02:00"

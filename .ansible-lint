@@ -1,0 +1,14 @@
+---
+# Konfiguration für ansible-lint (>= 26.6)
+
+# Begründung für die Ausnahmen:
+#
+# role-name:
+#   Alle Rollen dieses Repos (backup-tools, base-system, container-tools,
+#   komodo-periphery, monitoring-tools, pangolin-newt, proxmox-setup,
+#   shell-config, security) sind rein lokal und werden nicht auf Ansible
+#   Galaxy veröffentlicht. Die Galaxy-Namenskonvention ^[a-z][a-z0-9_]*$
+#   (keine Bindestriche) bringt hier keinen Nutzen; eine Umbenennung würde
+#   dagegen alle Playbooks, host_vars und die Git-Historie brechen.
+skip_list:
+  - role-name

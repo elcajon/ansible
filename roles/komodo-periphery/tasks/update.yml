@@ -1,4 +1,4 @@
-#SPDX-License-Identifier: MIT-0
+# SPDX-License-Identifier: MIT-0
 ---
 # Update-Tasks für Komodo Periphery.
 # Periphery wird nur auf Docker-Hosts verwaltet. Auf diesen wird die
@@ -21,7 +21,11 @@
         install_periphery: true
 
     - name: Installierte Periphery-Version ermitteln
-      ansible.builtin.shell: "{{ periphery_bin }} --version 2>&1 | grep -oE '[0-9]+\\.[0-9]+\\.[0-9]+' | head -n1"
+      ansible.builtin.shell: |
+        set -o pipefail
+        {{ periphery_bin }} --version 2>&1 | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -n1
+      args:
+        executable: /bin/bash
       register: periphery_installed_version
       changed_when: false
       failed_when: false
@@ -47,10 +51,4 @@
         mode: "0755"
         force: true
       when: periphery_installed_version.stdout | default('') != periphery_latest_version
-      register: periphery_update_result
-
-    - name: Periphery neustarten nach Update
-      ansible.builtin.systemd:
-        name: periphery
-        state: restarted
-      when: periphery_update_result is changed
+      notify: Enable and start periphery

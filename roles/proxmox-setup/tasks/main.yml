@@ -1,8 +1,8 @@
-#SPDX-License-Identifier: MIT-0
+# SPDX-License-Identifier: MIT-0
 ---
 # tasks file for proxmox-setup
 - name: IPv6 aktivieren
-  sysctl:
+  ansible.posix.sysctl:
     name: "{{ item }}"
     value: 0
     sysctl_set: true

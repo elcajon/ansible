@@ -3,14 +3,14 @@
 # Prüft ob Newt installiert ist und aktualisiert bei Bedarf
 
 - name: Prüfe ob Newt installiert ist
-  stat:
+  ansible.builtin.stat:
     path: /usr/local/bin/newt
   register: newt_binary
 
 # Pfad relativ zur Task-Datei, da diese per include_tasks (ohne Rollen-Kontext)
 # aus dem Playbook eingebunden wird
-- name: Newt Update-Skript aktualisieren
-  template:
+- name: Newt Update-Skript aktualisieren # noqa: no-relative-paths
+  ansible.builtin.template:
     src: ../templates/newt_update.j2
     dest: /etc/cron.daily/newt_update
     owner: root
@@ -19,7 +19,11 @@
   when: newt_binary.stat.exists
 
 - name: Installierte Newt-Version ermitteln
-  shell: newt --version 2>&1 | grep -oP '[0-9]+\.[0-9]+\.[0-9]+'
+  ansible.builtin.shell: |
+    set -o pipefail
+    newt --version 2>&1 | grep -oP '[0-9]+\.[0-9]+\.[0-9]+'
+  args:
+    executable: /bin/bash
   register: newt_installed_version
   changed_when: false
   failed_when: false
@@ -28,7 +32,7 @@
 # Redirect von /releases/latest statt der API nutzen: kein Rate-Limit,
 # und "latest" enthält nie Prereleases oder Drafts
 - name: Neueste Newt-Version von GitHub ermitteln
-  uri:
+  ansible.builtin.uri:
     url: https://github.com/fosrl/newt/releases/latest
     follow_redirects: none
     status_code: 302
@@ -36,18 +40,18 @@
   when: newt_binary.stat.exists
 
 - name: Neueste stabile Newt-Version bestimmen
-  set_fact:
+  ansible.builtin.set_fact:
     newt_latest_version: "{{ newt_latest_release.location | basename }}"
   when: newt_binary.stat.exists
 
 - name: Newt Architektur bestimmen
-  set_fact:
+  ansible.builtin.set_fact:
     newt_arch: >-
       {{ 'arm64' if ansible_facts['architecture'] == 'aarch64' else 'amd64' }}
   when: newt_binary.stat.exists
 
 - name: Newt aktualisieren
-  get_url:
+  ansible.builtin.get_url:
     url: "https://github.com/fosrl/newt/releases/download/{{ newt_latest_version }}/newt_linux_{{ newt_arch }}"
     dest: /usr/local/bin/newt
     mode: "0755"

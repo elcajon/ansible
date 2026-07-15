@@ -1,4 +1,4 @@
-#SPDX-License-Identifier: MIT-0
+# SPDX-License-Identifier: MIT-0
 ---
 # tasks file for security
 # Diese Datei enthält alle Aufgaben zur Absicherung des Systems
@@ -9,37 +9,37 @@
 - name: Sicherstellen, dass sshd_config Drop-ins zuerst lädt
   # OpenSSH wertet bei den meisten Optionen den ersten Treffer aus. Das Drop-in
   # greift daher nur, wenn die Include-Zeile am Dateianfang steht.
-  lineinfile:
+  ansible.builtin.lineinfile:
     path: /etc/ssh/sshd_config
     line: "Include /etc/ssh/sshd_config.d/*.conf"
-    regexp: '^\s*Include\s+/etc/ssh/sshd_config\.d/\*\.conf'
+    regexp: "^\\s*Include\\s+/etc/ssh/sshd_config\\.d/\\*\\.conf"
     insertbefore: BOF
     firstmatch: true
-  register: ssh_include
+  register: security_ssh_include
   when: "'openssh-server' in ansible_facts.packages"
 
 - name: SSH Hardening (Drop-in-Konfiguration)
   # Schreibt die Hardening-Einstellungen als Drop-in. Dieses wird nach der
   # Haupt-sshd_config und nach Cloud-Init-Drop-ins geladen und kann daher
   # nicht versehentlich überschrieben werden (z. B. PasswordAuthentication).
-  copy:
+  ansible.builtin.copy:
     dest: /etc/ssh/sshd_config.d/99-hardening.conf
     owner: root
     group: root
     mode: "0644"
     content: |
       # Managed by Ansible (security role) - nicht manuell bearbeiten
-      {% for option in ssh_hardening_options %}
+      {% for option in security_ssh_hardening_options %}
       {{ option }}
       {% endfor %}
-  register: ssh_hardening
+  register: security_ssh_hardening
   when: "'openssh-server' in ansible_facts.packages"
 
 - name: Privilege-Separation-Verzeichnis für die sshd-Validierung sicherstellen
   # sshd -t benötigt /run/sshd. Bei nur über Tailscale erreichbaren Hosts ist
   # der SSH-Dienst gestoppt, daher fehlt das Verzeichnis (tmpfs). Es wird sonst
   # vom Dienst beim Start angelegt.
-  file:
+  ansible.builtin.file:
     path: /run/sshd
     state: directory
     owner: root
@@ -47,26 +47,26 @@
     mode: "0755"
   when:
     - "'openssh-server' in ansible_facts.packages"
-    - ssh_hardening is changed or ssh_include is changed
+    - security_ssh_hardening is changed or security_ssh_include is changed
 
 - name: SSH-Konfiguration validieren
   # Prüft die gesamte effektive Konfiguration inkl. des neuen Drop-ins, bevor
   # SSH neu gestartet wird – verhindert ein Aussperren durch Syntaxfehler.
-  command: sshd -t
+  ansible.builtin.command: sshd -t
   changed_when: false
   when:
     - "'openssh-server' in ansible_facts.packages"
-    - ssh_hardening is changed or ssh_include is changed
+    - security_ssh_hardening is changed or security_ssh_include is changed
 
 - name: SSH neu starten
   # SSH-Dienst nur neu starten, wenn sich die Konfiguration geändert hat
-  systemd:
+  ansible.builtin.systemd:
     name: ssh
     state: restarted
-  ignore_errors: true # Fehler ignorieren, falls SSH nicht installiert ist
+  failed_when: false # Fehler ignorieren, falls SSH nicht installiert ist
   when:
     - "'openssh-server' in ansible_facts.packages"
-    - ssh_hardening is changed or ssh_include is changed
+    - security_ssh_hardening is changed or security_ssh_include is changed
 
 - name: SSH deaktivieren (Login nur über Tailscale)
   # Deaktiviert den SSH-Dienst, wenn der Server nur über Tailscale erreichbar sein soll.
@@ -74,7 +74,7 @@
   # insbesondere durch dpkg-postinst bei einem openssh-server-Update. Ohne Maskierung
   # kommt SSH nach Paketupdate + Reboot wieder hoch (jedes Mal "changed").
   # Unkritisch, da der Zugang über Tailscale SSH (--ssh) erfolgt.
-  systemd:
+  ansible.builtin.systemd:
     name: "{{ item }}"
     state: stopped
     enabled: false
@@ -82,7 +82,7 @@
   loop:
     - ssh.service
     - ssh.socket
-  when: disable_ssh_for_tailscale | default(False) or 'tailscale' in ansible_facts.packages
+  when: security_disable_ssh_for_tailscale | default(False) or 'tailscale' in ansible_facts.packages
 
 - name: IPv4 & IPv6 Forwarding persistent konfigurieren
   # Notwendig u. a. für Tailscale-Exit-Nodes (auch in LXC-Containern).
@@ -90,7 +90,7 @@
   # idempotent bleibt: In LXC fällt der Live-Wert nach einem Reboot auf 0
   # zurück, ein live-prüfender sysctl-Task würde dann bei jedem Lauf "changed"
   # melden. systemd-sysctl wendet das Drop-in bei jedem Boot an.
-  copy:
+  ansible.builtin.copy:
     dest: /etc/sysctl.d/99-ip-forward.conf
     owner: root
     group: root
@@ -99,40 +99,43 @@
       # Managed by Ansible (security role) - nicht manuell bearbeiten
       net.ipv4.ip_forward = 1
       net.ipv6.conf.all.forwarding = 1
-  register: ip_forward_config
+  register: security_ip_forward_config
 
-- name: IP-Forwarding live anwenden
+- name: IP-Forwarding live anwenden # noqa: no-handler
+  # Kein Handler: Forwarding muss sofort aktiv sein, bevor nachfolgende Rollen
+  # (z. B. Tailscale Exit-Node) im selben Play darauf aufbauen.
   # Nur die eigene Drop-in-Datei anwenden (nicht "sysctl --system"): in LXC sind
   # diverse fremde Keys read-only, ein systemweites Anwenden würde mit rc=1
   # scheitern. Nur wenn sich die Datei geändert hat -> kein churn im Normalbetrieb.
-  command: sysctl -p /etc/sysctl.d/99-ip-forward.conf
+  ansible.builtin.command: sysctl -p /etc/sysctl.d/99-ip-forward.conf
   changed_when: false
-  when: ip_forward_config is changed
+  when: security_ip_forward_config is changed
 
 - name: Unattended-Upgrades Konfiguration kopieren
   # Konfiguriert automatische Sicherheitsupdates
   # Die Template-Datei enthält Einstellungen für automatische Updates und Benachrichtigungen
-  template:
+  ansible.builtin.template:
     src: 50unattended-upgrades.j2
     dest: /etc/apt/apt.conf.d/50unattended-upgrades
     owner: root
     group: root
     mode: "0755"
-  register: unattended_upgrades_config
+  register: security_unattended_upgrades_config
 
 - name: Unattended-Upgrades aktivieren
   # Aktiviert automatische Updates über das Debconf-System
-  debconf:
+  ansible.builtin.debconf:
     name: unattended-upgrades
     question: unattended-upgrades/enable_auto_updates
     value: "true"
     vtype: boolean
-  register: unattended_upgrades_debconf
+  register: security_unattended_upgrades_debconf
 
 - name: Unattended-Upgrades konfigurieren
   # Wendet die Konfiguration nur an, wenn sich Template oder Debconf geändert haben
-  command: dpkg-reconfigure -f noninteractive unattended-upgrades
-  when: unattended_upgrades_config is changed or unattended_upgrades_debconf is changed
+  ansible.builtin.command: dpkg-reconfigure -f noninteractive unattended-upgrades
+  changed_when: true
+  when: security_unattended_upgrades_config is changed or security_unattended_upgrades_debconf is changed
 
 - name: System-Wartung (Zeitsynchronisation & Reboot-Check)
   ansible.builtin.import_tasks: maintenance.yml
