@@ -13,11 +13,12 @@
     tailscale_token: "{{ lookup('community.general.onepassword', 'Tailscale Token', field='Anmeldedaten', vault='CI') }}"
     proxmox_pool: "{{ lookup('community.general.onepassword', 'Proxmox API', field='Pool', vault='CI') }}"
 
-    # TLS-Zertifikat der Proxmox-API prüfen, damit das API-Token nicht an
-    # einen MITM ausgeliefert werden kann. Bei selbstsigniertem Zertifikat
-    # die eigene CA über die Umgebungsvariable REQUESTS_CA_BUNDLE bekannt
-    # machen oder gezielt mit -e proxmox_validate_certs=false übersteuern.
-    proxmox_validate_certs: true
+    # Der Proxmox-Host nutzt ein selbstsigniertes Zertifikat und es soll
+    # bewusst keine eigene CA gepflegt werden, daher ist die Prüfung per
+    # Default aus. Risiko-Abwägung: Der API-Endpunkt liegt im internen Netz.
+    # Mit gültigem Zertifikat (oder CA via REQUESTS_CA_BUNDLE) per
+    # -e proxmox_validate_certs=true aktivierbar.
+    proxmox_validate_certs: false
 
   vars_prompt:
     - name: server_name
