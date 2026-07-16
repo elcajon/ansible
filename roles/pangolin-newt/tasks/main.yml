@@ -22,6 +22,36 @@
     creates: /usr/local/bin/newt
   when: install_newt | default(False)
 
+- name: Newt-Konfigurationsverzeichnis anlegen
+  ansible.builtin.file:
+    path: /etc/newt
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+  when: install_newt | default(False)
+
+- name: Newt-Zugangsdaten aus der Site-Erstellung übernehmen
+  ansible.builtin.set_fact:
+    newt_endpoint: "https://{{ site_defaults.data.endpoint }}"
+    newt_id: "{{ site_defaults.data.newtId }}"
+    newt_secret: "{{ site_defaults.data.newtSecret }}"
+  no_log: true
+  when: install_newt | default(False)
+
+- name: Newt-Umgebungsdatei mit Zugangsdaten erzeugen
+  # Nur für root lesbar; die Service-Unit selbst enthält keine Secrets mehr.
+  ansible.builtin.template:
+    src: newt.env.j2
+    dest: /etc/newt/newt.env
+    owner: root
+    group: root
+    mode: "0600"
+  no_log: true
+  notify:
+    - Enable and start newt
+  when: install_newt | default(False)
+
 - name: Newt Systemd Service aus Template erzeugen
   ansible.builtin.template:
     src: newt.service.j2

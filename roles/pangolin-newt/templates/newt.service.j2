@@ -3,7 +3,11 @@ Description=Newt VPN Client
 After=network.target
 
 [Service]
-ExecStart=/usr/local/bin/newt --id {{ site_defaults.data.newtId }} --secret {{ site_defaults.data.newtSecret }} --endpoint https://{{ site_defaults.data.endpoint }}
+# Zugangsdaten liegen in einer nur für root lesbaren EnvironmentFile statt auf
+# der ExecStart-Zeile: dort wären sie für alle lokalen Nutzer sichtbar (Unit-
+# Datei ist 0644, Kommandozeile via ps einsehbar).
+EnvironmentFile=/etc/newt/newt.env
+ExecStart=/usr/local/bin/newt
 Restart=always
 User=root
 

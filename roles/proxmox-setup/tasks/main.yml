@@ -11,14 +11,18 @@
   loop:
     - net.ipv6.conf.all.disable_ipv6
 
+# Die Community-Scripts werden auf einen festen Commit gepinnt statt auf den
+# beweglichen main-Branch: so ist reproduzierbar, welcher Code als root laufen
+# wird, und ein kompromittiertes Upstream-Repo landet nicht automatisch hier.
+# Zum Aktualisieren den Commit-Hash bewusst anheben (Stand: 2026-07-16).
 - name: Lade das Home Assistant OS Script herunter
   ansible.builtin.get_url:
-    url: https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main/vm/haos-vm.sh
+    url: https://raw.githubusercontent.com/community-scripts/ProxmoxVE/b9f26d66ed5131bcded155ebb83784f303cf4355/vm/haos-vm.sh
     dest: /root/ha-install.sh
     mode: "0755"
 
 - name: Lade das post-pve-install.sh Script herunter
   ansible.builtin.get_url:
-    url: https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main/tools/pve/post-pve-install.sh
+    url: https://raw.githubusercontent.com/community-scripts/ProxmoxVE/b9f26d66ed5131bcded155ebb83784f303cf4355/tools/pve/post-pve-install.sh
     dest: /root/post-pve-install.sh
     mode: "0755"
