@@ -16,9 +16,15 @@ get_installed_version() {
   fi
 }
 
-# Neueste stabile Version (Release-Tag) von GitHub holen
+# Neueste stabile Version (Release-JSON) von GitHub holen; aus derselben
+# Antwort wird später auch der SHA256-Digest des Assets gelesen.
+RELEASE_JSON=""
+fetch_release_json() {
+  RELEASE_JSON="$(curl -fsS "https://api.github.com/repos/${REPO}/releases/latest")"
+}
+
 get_latest_tag() {
-  curl -s "https://api.github.com/repos/${REPO}/releases/latest" | jq -r '.tag_name'
+  printf '%s' "$RELEASE_JSON" | jq -r '.tag_name'
 }
 
 # Architektur bestimmen (Komodo liefert nur x86_64 und aarch64)
@@ -37,18 +43,37 @@ install_periphery() {
   tmp="$(mktemp)"
 
   echo "Lade periphery ${tag} (${arch}) herunter..."
-  if curl -fL -o "$tmp" "$url"; then
-    install -m 0755 "$tmp" "$PERIPHERYPATH"
-    rm -f "$tmp"
-    echo "Update erfolgreich."
-  else
+  if ! curl -fL -o "$tmp" "$url"; then
     rm -f "$tmp"
     echo "Download fehlgeschlagen. URL: ${url}" >&2
     exit 1
   fi
+
+  # SHA256-Prüfung gegen den Asset-Digest aus der bereits geladenen
+  # API-Antwort (Komodo veröffentlicht keine Checksum-Datei). Ohne
+  # verfügbaren Digest wird nur gewarnt, damit Updates nicht blockieren.
+  expected_sha="$(printf '%s' "$RELEASE_JSON" \
+    | jq -r --arg name "periphery-${arch}" '.assets[] | select(.name == $name) | .digest // empty' \
+    | sed 's/^sha256://')"
+  if [ -n "$expected_sha" ]; then
+    actual_sha="$(sha256sum "$tmp" | awk '{print $1}')"
+    if [ "$actual_sha" != "$expected_sha" ]; then
+      echo "SHA256-Prüfung fehlgeschlagen (erwartet ${expected_sha}, erhalten ${actual_sha}). Installation abgebrochen." >&2
+      rm -f "$tmp"
+      exit 1
+    fi
+    echo "SHA256-Prüfung erfolgreich."
+  else
+    echo "Warnung: Kein Digest für periphery-${arch} verfügbar, Checksum-Prüfung übersprungen." >&2
+  fi
+
+  install -m 0755 "$tmp" "$PERIPHERYPATH"
+  rm -f "$tmp"
+  echo "Update erfolgreich."
 }
 
 installed_version="$(get_installed_version)"
+fetch_release_json
 latest_tag="$(get_latest_tag)"
 latest_version="${latest_tag#v}"
 

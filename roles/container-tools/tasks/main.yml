@@ -32,9 +32,11 @@
   when: install_docker | default(false) and not ctop_binary.stat.exists
 
 - name: Ctop installieren
+  # SHA256-Prüfung gegen die von ctop veröffentlichte sha256sums.txt
   ansible.builtin.get_url:
     url: "https://github.com/bcicen/ctop/releases/download/{{ ctop_release.json.tag_name }}/ctop-{{
       ctop_release.json.tag_name | regex_replace('^v', '') }}-linux-{{ ctop_arch }}"
     dest: /usr/local/bin/ctop
     mode: "0755"
+    checksum: "sha256:https://github.com/bcicen/ctop/releases/download/{{ ctop_release.json.tag_name }}/sha256sums.txt"
   when: install_docker | default(false) and not ctop_binary.stat.exists

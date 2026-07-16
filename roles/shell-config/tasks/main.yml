@@ -7,11 +7,12 @@
     shell: /usr/bin/zsh
 
 # Upstream-Installer wird bewusst per wget | zsh ausgeführt (offiziell
-# empfohlener Installationsweg von Oh-My-Zsh).
+# empfohlener Installationsweg von Oh-My-Zsh). Bezug aus dem gepflegten
+# ohmyzsh/ohmyzsh-Repo statt des veralteten robbyrussell-Namensraums.
 - name: Oh-My-Zsh installieren (root) # noqa: command-instead-of-module
   ansible.builtin.shell: |
     set -o pipefail
-    wget -q https://github.com/robbyrussell/oh-my-zsh/raw/master/tools/install.sh -O - | zsh
+    wget -q https://github.com/ohmyzsh/ohmyzsh/raw/master/tools/install.sh -O - | zsh
   args:
     creates: /root/.oh-my-zsh
     executable: /bin/bash

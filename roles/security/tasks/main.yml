@@ -119,7 +119,7 @@
     dest: /etc/apt/apt.conf.d/50unattended-upgrades
     owner: root
     group: root
-    mode: "0755"
+    mode: "0644"
   register: security_unattended_upgrades_config
 
 - name: Unattended-Upgrades aktivieren

@@ -1,36 +1,48 @@
 ---
 # tasks file for pangolin API Integration
-# Die Pangolin-API wird bewusst per curl angesprochen: der API-Endpunkt ist nur
-# intern erreichbar und die bestehenden Aufrufe sind gegen diese API getestet.
-- name: Get site defaults from Pangolin API using curl # noqa: command-instead-of-module
-  ansible.builtin.shell: >
-    curl -s -H "Authorization: Bearer {{ lookup('env', 'pangolin_api_token') | default(pangolin_api_token, true) }}"
-    {{ lookup('env', 'pangolin_api_endpoint') | default(pangolin_api_endpoint, true) }}/org/{{
-    lookup('env', 'pangolin_organization_id') | default(pangolin_organization_id, true) }}/pick-site-defaults
-  register: site_defaults_curl
+# Die Aufrufe laufen über ansible.builtin.uri statt curl im Shell-Task: so
+# landen Token und Site-Secrets weder auf einer Kommandozeile (ps auf dem
+# Zielhost) noch im Ansible-Log (log_path); no_log deckt zusätzlich die
+# registrierten Ergebnisse ab.
+- name: Get site defaults from Pangolin API
+  ansible.builtin.uri:
+    url: >-
+      {{ lookup('env', 'pangolin_api_endpoint') | default(pangolin_api_endpoint, true) }}/org/{{
+      lookup('env', 'pangolin_organization_id') | default(pangolin_organization_id, true) }}/pick-site-defaults
+    method: GET
+    headers:
+      Authorization: "Bearer {{ lookup('env', 'pangolin_api_token') | default(pangolin_api_token, true) }}"
+    return_content: true
+  register: site_defaults_response
+  no_log: true
   changed_when: false
 
 - name: Parse site defaults JSON
   ansible.builtin.set_fact:
-    site_defaults: "{{ site_defaults_curl.stdout | from_json }}"
-  when: site_defaults_curl.stdout is defined and site_defaults_curl.stdout != ''
+    site_defaults: "{{ site_defaults_response.json }}"
+  no_log: true
+  when: site_defaults_response.json is defined
 
-- name: Create site using curl command # noqa: command-instead-of-module
-  ansible.builtin.shell: >
-    curl -s -X PUT
-    -H "Authorization: Bearer {{ pangolin_api_token }}"
-    -H "Content-Type: application/json"
-    -d '{
-      "name":"{{ site_name }}",
-      "exitNodeId":{{ (site_defaults.data | default({})).exitNodeId | default('') }},
-      "pubKey":"{{ (site_defaults.data | default({})).publicKey | default('') }}",
-      "subnet":"{{ (site_defaults.data | default({})).subnet | default('') }}",
-      "newtId":"{{ (site_defaults.data | default({})).newtId | default('') }}",
-      "secret":"{{ (site_defaults.data | default({})).newtSecret | default('') }}",
-      "address":"{{ (site_defaults.data | default({})).clientAddress | default('') }}",
-      "type":"{{ pangolin_site_type }}"
-    }'
-    {{ pangolin_api_endpoint }}/org/{{ pangolin_organization_id }}/site
+- name: Create site via Pangolin API
+  ansible.builtin.uri:
+    url: >-
+      {{ lookup('env', 'pangolin_api_endpoint') | default(pangolin_api_endpoint, true) }}/org/{{
+      lookup('env', 'pangolin_organization_id') | default(pangolin_organization_id, true) }}/site
+    method: PUT
+    headers:
+      Authorization: "Bearer {{ lookup('env', 'pangolin_api_token') | default(pangolin_api_token, true) }}"
+    body_format: json
+    body:
+      name: "{{ site_name }}"
+      exitNodeId: "{{ site_defaults.data.exitNodeId | default(None) }}"
+      pubKey: "{{ site_defaults.data.publicKey | default('') }}"
+      subnet: "{{ site_defaults.data.subnet | default('') }}"
+      newtId: "{{ site_defaults.data.newtId | default('') }}"
+      secret: "{{ site_defaults.data.newtSecret | default('') }}"
+      address: "{{ site_defaults.data.clientAddress | default('') }}"
+      type: "{{ pangolin_site_type }}"
+    status_code: [200, 201]
   register: create_site_result
+  no_log: true
   changed_when: true
   when: site_defaults is defined and site_defaults.data is defined and site_defaults.data is not none

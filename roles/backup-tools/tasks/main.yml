@@ -18,10 +18,13 @@
     mode: "0755"
 
 - name: RCLONE-Konfiguration anlegen
+  # no_log: Der Config-Inhalt (Cloud-Storage-Zugangsdaten aus 1Password) darf
+  # weder im Ansible-Log (log_path) noch in --diff-Ausgaben landen.
   ansible.builtin.copy:
     dest: /root/.config/rclone/rclone.conf
     content: "{{ rclone_config | default('') }}"
     owner: root
     group: root
     mode: "0600"
+  no_log: true
   when: rclone_config is defined and rclone_config | length > 0

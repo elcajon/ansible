@@ -41,12 +41,14 @@
   when: ctop_binary.stat.exists
 
 - name: Ctop aktualisieren
+  # SHA256-Prüfung gegen die von ctop veröffentlichte sha256sums.txt
   ansible.builtin.get_url:
     url: "https://github.com/bcicen/ctop/releases/download/{{ ctop_latest_tag }}/ctop-{{
       ctop_latest_tag | regex_replace('^v', '') }}-linux-{{ ctop_arch }}"
     dest: /usr/local/bin/ctop
     mode: "0755"
     force: true
+    checksum: "sha256:https://github.com/bcicen/ctop/releases/download/{{ ctop_latest_tag }}/sha256sums.txt"
   when:
     - ctop_binary.stat.exists
     - ctop_installed_version.stdout | default('') != (ctop_latest_tag | regex_replace('^v', ''))

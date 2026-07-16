@@ -18,6 +18,99 @@
     mode: "0755"
   when: newt_binary.stat.exists
 
+# --- Migration: Zugangsdaten von der ExecStart-Zeile in eine EnvironmentFile ---
+# Bestehende Installationen haben newtId/newtSecret noch auf der ExecStart-
+# Zeile der Unit (für alle Nutzer via ps und 0644-Unit lesbar). Die Werte
+# werden einmalig aus der alten Unit extrahiert, nach /etc/newt/newt.env
+# (0600) verschoben und die Unit ohne Secrets neu geschrieben.
+- name: Newt-Konfigurationsverzeichnis anlegen
+  ansible.builtin.file:
+    path: /etc/newt
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+  when: newt_binary.stat.exists
+
+- name: Prüfe ob Newt-Umgebungsdatei bereits existiert
+  ansible.builtin.stat:
+    path: /etc/newt/newt.env
+  register: newt_envfile
+  when: newt_binary.stat.exists
+
+- name: Prüfe ob Newt-Service-Unit existiert
+  ansible.builtin.stat:
+    path: /etc/systemd/system/newt.service
+  register: newt_unit_stat
+  when: newt_binary.stat.exists
+
+- name: Bestehende Newt-Service-Unit einlesen (Migration)
+  ansible.builtin.slurp:
+    src: /etc/systemd/system/newt.service
+  register: newt_unit_raw
+  no_log: true
+  when:
+    - newt_binary.stat.exists
+    - not newt_envfile.stat.exists
+    - newt_unit_stat.stat.exists
+
+- name: Newt-Unit-Inhalt dekodieren
+  ansible.builtin.set_fact:
+    newt_unit_content: "{{ newt_unit_raw.content | b64decode }}"
+  no_log: true
+  when:
+    - newt_binary.stat.exists
+    - not newt_envfile.stat.exists
+    - newt_unit_stat.stat.exists
+
+- name: Newt-Zugangsdaten aus bestehender Unit übernehmen
+  ansible.builtin.set_fact:
+    newt_id: "{{ newt_unit_content | regex_search('--id\\s+(\\S+)', '\\1') | first }}"
+    newt_secret: "{{ newt_unit_content | regex_search('--secret\\s+(\\S+)', '\\1') | first }}"
+    newt_endpoint: "{{ newt_unit_content | regex_search('--endpoint\\s+(\\S+)', '\\1') | first }}"
+  no_log: true
+  when:
+    - newt_binary.stat.exists
+    - not newt_envfile.stat.exists
+    - newt_unit_stat.stat.exists
+    - "'--secret ' in newt_unit_content"
+
+- name: Newt-Umgebungsdatei aus bestehender Unit erzeugen # noqa: no-relative-paths
+  ansible.builtin.template:
+    src: ../templates/newt.env.j2
+    dest: /etc/newt/newt.env
+    owner: root
+    group: root
+    mode: "0600"
+  no_log: true
+  register: newt_env_migrated
+  when:
+    - newt_binary.stat.exists
+    - not newt_envfile.stat.exists
+    - newt_id is defined
+
+- name: Newt-Service-Unit ohne Zugangsdaten schreiben # noqa: no-relative-paths
+  ansible.builtin.template:
+    src: ../templates/newt.service.j2
+    dest: /etc/systemd/system/newt.service
+    owner: root
+    group: root
+    mode: "0644"
+  register: newt_unit_result
+  when:
+    - newt_binary.stat.exists
+    - newt_envfile.stat.exists or newt_env_migrated is changed
+
+- name: Newt Service nach Unit-Migration neu laden und starten
+  ansible.builtin.systemd:
+    name: newt
+    state: restarted
+    enabled: true
+    daemon_reload: true
+  when:
+    - newt_binary.stat.exists
+    - newt_unit_result is changed
+
 - name: Installierte Newt-Version ermitteln
   ansible.builtin.shell: |
     set -o pipefail
@@ -50,12 +143,28 @@
       {{ 'arm64' if ansible_facts['architecture'] == 'aarch64' else 'amd64' }}
   when: newt_binary.stat.exists
 
+# Nur bei tatsächlich anstehendem Update: ein API-Call, um den SHA256-Digest
+# des Release-Assets zu holen (newt veröffentlicht keine Checksum-Datei).
+# Das Rate-Limit bleibt unkritisch, da der Call im Normalbetrieb entfällt.
+- name: Digest der Newt-Binary von der GitHub-API ermitteln
+  ansible.builtin.uri:
+    url: "https://api.github.com/repos/fosrl/newt/releases/tags/{{ newt_latest_version }}"
+    return_content: true
+  register: newt_release_info
+  when:
+    - newt_binary.stat.exists
+    - newt_installed_version.stdout | default('') != newt_latest_version
+
 - name: Newt aktualisieren
   ansible.builtin.get_url:
     url: "https://github.com/fosrl/newt/releases/download/{{ newt_latest_version }}/newt_linux_{{ newt_arch }}"
     dest: /usr/local/bin/newt
     mode: "0755"
     force: true
+    checksum: >-
+      {{ newt_release_info.json.assets | default([])
+         | selectattr('name', 'equalto', 'newt_linux_' ~ newt_arch)
+         | map(attribute='digest', default='') | select() | first | default(omit) }}
   when:
     - newt_binary.stat.exists
     - newt_installed_version.stdout | default('') != newt_latest_version

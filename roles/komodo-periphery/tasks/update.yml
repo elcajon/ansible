@@ -45,10 +45,16 @@
         periphery_latest_version: "{{ komodo_release.json.tag_name | regex_replace('^v', '') }}"
 
     - name: Periphery-Binary aktualisieren
+      # SHA256-Prüfung gegen den Asset-Digest aus der bereits geladenen
+      # API-Antwort (Komodo veröffentlicht keine Checksum-Datei).
       ansible.builtin.get_url:
         url: "https://github.com/moghtech/komodo/releases/download/{{ komodo_release.json.tag_name }}/periphery-{{ periphery_arch }}"
         dest: "{{ periphery_bin }}"
         mode: "0755"
         force: true
+        checksum: >-
+          {{ komodo_release.json.assets | default([])
+             | selectattr('name', 'equalto', 'periphery-' ~ periphery_arch)
+             | map(attribute='digest', default='') | select() | first | default(omit) }}
       when: periphery_installed_version.stdout | default('') != periphery_latest_version
       notify: Enable and start periphery
