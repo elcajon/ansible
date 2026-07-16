@@ -10,6 +10,10 @@
     autoclean: true
     clean: true
     purge: true
+  register: apt_upgrade
+  until: apt_upgrade is success
+  retries: 3 # Erneut versuchen bei transienten Fehlern (Repo-Ausfall, apt-Lock)
+  delay: 30
 
 - name: Benötigte Pakete installieren
   ansible.builtin.apt:
