@@ -93,7 +93,7 @@
   gather_facts: true
 
   vars:
-    tailscale_token: "{{ lookup('community.general.onepassword', 'Tailscale Token - Remote Server', field='Anmeldedaten', vault='CI') }}"
+    tailscale_token: "{{ lookup('community.general.onepassword', 'Tailscale Token', field='Anmeldedaten', vault='CI') }}"
     ansible_python_interpreter: /usr/bin/python3
 
   tasks:
