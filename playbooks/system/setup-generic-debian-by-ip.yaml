@@ -4,7 +4,7 @@
   gather_facts: false
 
   vars:
-    tailscale_token: "{{ lookup('community.general.onepassword', 'Tailscale Token - Remote Server', field='Anmeldedaten', vault='CI') }}"
+    tailscale_token: "{{ lookup('community.general.onepassword', 'Tailscale Token', field='Anmeldedaten', vault='CI') }}"
 
   vars_prompt:
     - name: server_name
@@ -87,7 +87,7 @@
           ansible.builtin.include_role:
             name: artis3n.tailscale.machine
           vars:
-            tailscale_authkey: "{{ lookup('community.general.onepassword', 'Tailscale Token - Remote Server', field='Anmeldedaten', vault='CI') }}"
+            tailscale_authkey: "{{ lookup('community.general.onepassword', 'Tailscale Token', field='Anmeldedaten', vault='CI') }}"
             tailscale_args: "--ssh --accept-dns=true --accept-routes=false --advertise-exit-node"
           when: tailscale_running.rc != 0
     - name: Apply server roles
