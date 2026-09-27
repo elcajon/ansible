@@ -1,0 +1,102 @@
+---
+# Vor API-Aufrufen vorhandene oder aus einem Backup restaurierte Identität prüfen.
+- name: Vorhandene Newt-Umgebungsdatei prüfen
+  ansible.builtin.stat:
+    path: /etc/newt/newt.env
+  register: newt_existing_env
+
+- name: Vorhandene Newt-Unit prüfen
+  ansible.builtin.stat:
+    path: /etc/systemd/system/newt.service
+  register: newt_existing_unit
+
+- name: Alte Newt-Unit ohne Umgebungsdatei lesen
+  ansible.builtin.slurp:
+    src: /etc/systemd/system/newt.service
+  register: newt_legacy_unit
+  no_log: true
+  when:
+    - not newt_existing_env.stat.exists
+    - newt_existing_unit.stat.exists
+
+- name: Bestehende Newt-Identität aus alter Unit extrahieren
+  ansible.builtin.set_fact:
+    newt_id: "{{ (newt_legacy_unit.content | b64decode | regex_findall('--id\\s+(\\S+)') | first) | default('') }}"
+    newt_secret: "{{ (newt_legacy_unit.content | b64decode | regex_findall('--secret\\s+(\\S+)') | first) | default('') }}"
+    newt_endpoint: "{{ (newt_legacy_unit.content | b64decode | regex_findall('--endpoint\\s+(\\S+)') | first) | default('') }}"
+  no_log: true
+  when:
+    - not newt_existing_env.stat.exists
+    - newt_existing_unit.stat.exists
+
+- name: Wiederherstellbare Zugangsdaten in bestehender Unit verlangen
+  ansible.builtin.assert:
+    that:
+      - newt_id | length > 0
+      - newt_secret | length > 0
+      - newt_endpoint | length > 0
+    fail_msg: >-
+      Eine Newt-Unit existiert, aber ihre Zugangsdaten fehlen.
+      /etc/newt/newt.env aus dem Backup wiederherstellen; keine neue Site wird angelegt.
+  no_log: true
+  when:
+    - not newt_existing_env.stat.exists
+    - newt_existing_unit.stat.exists
+
+- name: Konfigurationsverzeichnis für alte Newt-Identität anlegen
+  ansible.builtin.file:
+    path: /etc/newt
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+  when:
+    - not newt_existing_env.stat.exists
+    - newt_existing_unit.stat.exists
+
+- name: Alte Newt-Identität in geschützte Umgebungsdatei übernehmen
+  ansible.builtin.template:
+    src: newt.env.j2
+    dest: /etc/newt/newt.env
+    owner: root
+    group: root
+    mode: "0600"
+  no_log: true
+  notify: Enable and start newt
+  when:
+    - not newt_existing_env.stat.exists
+    - newt_existing_unit.stat.exists
+
+- name: Newt-Konfiguration nach möglicher Migration prüfen
+  ansible.builtin.stat:
+    path: /etc/newt/newt.env
+  register: newt_envfile
+
+- name: Bestehende Newt-Konfiguration lesen
+  ansible.builtin.slurp:
+    src: /etc/newt/newt.env
+  register: newt_existing_config
+  no_log: true
+  when: newt_envfile.stat.exists
+
+- name: Vollständige bestehende Newt-Konfiguration verlangen
+  ansible.builtin.assert:
+    that:
+      - newt_envfile.stat.isreg
+      - newt_envfile.stat.size > 0
+      - "(newt_existing_config.content | b64decode | regex_search('(?m)^PANGOLIN_ENDPOINT=.+$')) is not none"
+      - "(newt_existing_config.content | b64decode | regex_search('(?m)^NEWT_ID=.+$')) is not none"
+      - "(newt_existing_config.content | b64decode | regex_search('(?m)^NEWT_SECRET=.+$')) is not none"
+    fail_msg: >-
+      Die vorhandene Newt-Konfiguration ist unvollständig.
+      Zugangsdaten aus dem Backup wiederherstellen; keine neue Site wird angelegt.
+  no_log: true
+  when: newt_envfile.stat.exists
+
+- name: Rechte vorhandener Newt-Konfiguration absichern
+  ansible.builtin.file:
+    path: /etc/newt/newt.env
+    owner: root
+    group: root
+    mode: "0600"
+  when: newt_envfile.stat.exists

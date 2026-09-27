@@ -2,10 +2,16 @@
 ---
 # tasks file for pangolin-newt
 
-# Pangolin API Integration für automatische Site-Erstellung
+- name: Vorhandene Newt-Identität erhalten
+  ansible.builtin.import_tasks: existing-config.yml
+  when: install_newt | default(False)
+
+# Nur ohne vorhandene Konfiguration eine neue Site erzeugen.
 - name: Include Pangolin API Integration tasks
   ansible.builtin.import_tasks: pangolin_api.yml
-  when: install_newt | default(False)
+  when:
+    - install_newt | default(False)
+    - not newt_envfile.stat.exists
 
 - name: Update/Installations-Skript für Newt kopieren
   ansible.builtin.template:
@@ -37,7 +43,9 @@
     newt_id: "{{ site_defaults.data.newtId }}"
     newt_secret: "{{ site_defaults.data.newtSecret }}"
   no_log: true
-  when: install_newt | default(False)
+  when:
+    - install_newt | default(False)
+    - not newt_envfile.stat.exists
 
 - name: Newt-Umgebungsdatei mit Zugangsdaten erzeugen
   # Nur für root lesbar; die Service-Unit selbst enthält keine Secrets mehr.
@@ -50,7 +58,9 @@
   no_log: true
   notify:
     - Enable and start newt
-  when: install_newt | default(False)
+  when:
+    - install_newt | default(False)
+    - not newt_envfile.stat.exists
 
 - name: Newt Systemd Service aus Template erzeugen
   ansible.builtin.template:
@@ -62,4 +72,12 @@
   notify:
     - Reload systemd
     - Enable and start newt
+  when: install_newt | default(False)
+
+- name: Newt auch mit wiederhergestellter Konfiguration starten
+  ansible.builtin.systemd:
+    name: newt
+    state: started
+    enabled: true
+    daemon_reload: true
   when: install_newt | default(False)
