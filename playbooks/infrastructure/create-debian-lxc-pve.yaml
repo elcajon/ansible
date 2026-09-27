@@ -191,22 +191,11 @@
     ansible_python_interpreter: /usr/bin/python3
 
   tasks:
-    - name: Set up Tailscale
+    - name: Set up Tailscale while preserving host identity
+      ansible.builtin.include_tasks: ../includes/setup-host-tailscale.yaml
+      vars:
+        host_tailscale_authkey: "{{ lookup('community.general.onepassword', 'Tailscale Token', field='Anmeldedaten', vault='CI') }}"
       when: tailscale | bool
 
-      block:
-        - name: Check if Tailscale is already running
-          ansible.builtin.command: pgrep tailscaled
-          register: tailscale_running
-          failed_when: false
-          changed_when: false
-
-        - name: Install and start Tailscale
-          ansible.builtin.include_role:
-            name: artis3n.tailscale.machine
-          vars:
-            tailscale_authkey: "{{ lookup('community.general.onepassword', 'Tailscale Token', field='Anmeldedaten', vault='CI') }}"
-            tailscale_args: "--ssh --accept-dns=true --accept-routes=false --advertise-exit-node"
-          when: tailscale_running.rc != 0
     - name: Apply server roles
       ansible.builtin.include_tasks: ../includes/apply-server-roles.yaml

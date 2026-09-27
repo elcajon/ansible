@@ -1,0 +1,35 @@
+---
+# Gerätezustand vor Installation/Start prüfen, nicht nur den laufenden Prozess.
+- name: Vorhandenen Host-Tailscale-Zustand prüfen
+  ansible.builtin.stat:
+    path: /var/lib/tailscale/tailscaled.state
+  register: host_tailscale_state
+
+- name: Nichtleeren vorhandenen Tailscale-Zustand verlangen
+  ansible.builtin.assert:
+    that:
+      - host_tailscale_state.stat.isreg
+      - host_tailscale_state.stat.size > 0
+    fail_msg: >-
+      Der vorhandene Host-Tailscale-Zustand ist leer oder keine reguläre Datei.
+      Aus dem Backup wiederherstellen; keine neue Anmeldung wird durchgeführt.
+  when: host_tailscale_state.stat.exists
+
+- name: Tailscale mit vorhandener Hostidentität installieren und starten
+  ansible.builtin.include_role:
+    name: artis3n.tailscale.machine
+  vars:
+    state: present
+    tailscale_up_skip: true
+    tailscale_authkey: ""
+  when: host_tailscale_state.stat.exists
+
+- name: Tailscale nur ohne vorhandenen Gerätezustand anmelden
+  ansible.builtin.include_role:
+    name: artis3n.tailscale.machine
+  vars:
+    state: present
+    tailscale_up_skip: false
+    tailscale_authkey: "{{ host_tailscale_authkey }}"
+    tailscale_args: "--ssh --accept-dns=true --accept-routes=false --advertise-exit-node"
+  when: not host_tailscale_state.stat.exists
