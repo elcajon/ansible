@@ -20,7 +20,7 @@
       X-Api-Secret: "{{ komodo_api_secret }}"
     body_format: json
     body:
-      name: "ansible-{{ periphery_connect_as }}"
+      name: "ansible-{{ periphery_effective_connect_as }}"
     status_code: 200
   delegate_to: localhost
   become: false
