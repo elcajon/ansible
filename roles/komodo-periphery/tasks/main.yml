@@ -4,6 +4,10 @@
 # Installiert und konfiguriert den Komodo Periphery Agent als systemd-Dienst
 # (statt im Container) – analog zur pangolin-newt-Rolle.
 
+- name: Servernamen (connect_as) ermitteln
+  ansible.builtin.import_tasks: connect_as.yml
+  when: install_periphery | default(false)
+
 - name: Onboarding via Komodo API (nur Erstinstall)
   ansible.builtin.import_tasks: komodo_api.yml
   when: install_periphery | default(false)
@@ -46,6 +50,22 @@
   notify:
     - Enable and start periphery
   when: install_periphery | default(false)
+
+- name: "ACHTUNG: Server in Komodo umbenennen"
+  # Periphery meldet sich ab dem Neustart unter dem neuen Namen an. Core ordnet
+  # die Verbindung nur über den Namen zu und meldet einen unbekannten Namen
+  # nicht als Fehler – der Server bleibt stumm "unhealthy", bis er in Komodo
+  # umbenannt ist. Das Keypair bleibt gültig, ein neues Onboarding ist unnötig.
+  ansible.builtin.debug:
+    msg:
+      - "connect_as geändert: '{{ periphery_previous_connect_as }}' -> '{{ periphery_effective_connect_as }}'"
+      - "In Komodo den Server '{{ periphery_previous_connect_as }}' in '{{ periphery_effective_connect_as }}' umbenennen,"
+      - "sonst bleibt er unhealthy (Core meldet den unbekannten Namen nicht als Fehler)."
+  changed_when: true
+  when:
+    - install_periphery | default(false)
+    - periphery_previous_connect_as | length > 0
+    - periphery_previous_connect_as != periphery_effective_connect_as
 
 - name: Periphery Systemd Service erzeugen
   ansible.builtin.template:

@@ -34,7 +34,7 @@ as a systemd service** (instead of in a container), analogous to the
 | `komodo_core_address` | `http://100.90.80.191:8080` | Address Periphery dials (outbound mode). Core's **Tailscale IP** — DNS-independent and avoids the `/etc/hosts` short-name trap on the Core host itself (where `pangolin` resolves to `127.0.1.1`). Fallback on IP change: the FQDN `http://pangolin.stern-chimera.ts.net:8080` (never the short name). |
 | `komodo_api_url` | `{{ komodo_core_address }}` | Komodo Core API endpoint for `CreateOnboardingKey`. Must be the **internal** Core address — the public UI URL (`op://CI/Komodo/URL`, `https://komodo.max-venz.io`) sits behind the Pangolin auth proxy and rejects API calls with HTTP 302. |
 | `komodo_api_key` / `komodo_api_secret` | `""` | Admin API credentials. Inject from `op://CI/Komodo/{Key,Secret}`. |
-| `periphery_connect_as` | `{{ server_name \| default(inventory_hostname) }}` | Server name registered in Komodo. |
+| `periphery_connect_as` | `""` (auto) | Server name registered in Komodo. Empty = the host's **Tailscale HostName** (fallback: `ansible_facts.hostname`), so setup and update playbooks write the same name. |
 | `periphery_root_directory` | `/srv/komodo-periphery` | Root dir (mirrors compose `PERIPHERY_ROOT_DIRECTORY`). |
 | `periphery_stack_dir` | `/srv` | Stack dir (mirrors compose `PERIPHERY_STACK_DIR`). |
 | `periphery_include_disk_mounts` | `[/etc/hostname]` | Disk-report whitelist (mirrors compose). |
@@ -46,7 +46,14 @@ as a systemd service** (instead of in a container), analogous to the
   call) use the **internal** Core address (Core's Tailscale IP `100.90.80.191:8080`).
   The public UI URL `https://komodo.max-venz.io` is behind the Pangolin auth proxy
   and cannot be used for API calls (returns HTTP 302 to a login page).
-- `connect_as` must match the server name registered in Komodo. When migrating a
-  host from a container-based Periphery, the existing server (and its registered
-  public key) keep their name — either rename the Komodo server to the host's
-  name, or override `periphery_connect_as` for that host.
+- `connect_as` must match the server name registered in Komodo. Core matches
+  the outbound connection by name only and does **not** log an unknown name —
+  the server just shows as unhealthy.
+- The name is derived the same way in every playbook (Tailscale HostName), never
+  from the setup prompt (which is often an IP). If a run changes `connect_as`
+  compared to the existing config (e.g. a host onboarded under its IP, or a
+  renamed host), the role reports a changed task
+  **"ACHTUNG: Server in Komodo umbenennen"** with the old and new name. Rename
+  the server in Komodo accordingly; the registered public key stays valid, no
+  new onboarding is needed. To keep a different name, set
+  `periphery_connect_as` for that host.

@@ -8,7 +8,7 @@ include_disk_mounts = [{% for mount in periphery_include_disk_mounts %}"{{ mount
 
 # Outbound-Mode: Periphery verbindet sich aktiv zu Komodo Core.
 core_address = "{{ komodo_core_address }}"
-connect_as = "{{ periphery_connect_as }}"
+connect_as = "{{ periphery_effective_connect_as }}"
 {% if periphery_onboarding_key is defined and periphery_onboarding_key | length > 0 %}
 
 # Einmaliger Onboarding-Key (nur beim Erstinstall vorhanden). Periphery erzeugt

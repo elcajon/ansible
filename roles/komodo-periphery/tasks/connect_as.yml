@@ -1,0 +1,39 @@
+# SPDX-License-Identifier: MIT-0
+---
+# Ermittelt den Servernamen, unter dem sich Periphery bei Komodo Core meldet.
+# Setup- und Update-Playbooks müssen denselben Namen ergeben, sonst schreibt
+# jeder Lauf einen anderen connect_as. Deshalb nicht die Prompt-Eingabe
+# (oft eine IP), sondern der Tailscale-HostName – derselbe Name, den das
+# Tailscale-Inventar (update-inventory.yaml) als inventory_hostname liefert.
+
+- name: Tailscale-HostName für connect_as ermitteln
+  ansible.builtin.command: tailscale status --json
+  register: periphery_tailscale_status
+  changed_when: false
+  failed_when: false
+  check_mode: false
+  when: periphery_connect_as | length == 0
+
+- name: Servernamen festlegen (Override > Tailscale-HostName > Hostname)
+  ansible.builtin.set_fact:
+    periphery_effective_connect_as: >-
+      {{ periphery_connect_as
+         if periphery_connect_as | length > 0
+         else ((periphery_tailscale_status.stdout | from_json).Self.HostName
+               if periphery_tailscale_status.rc | default(1) == 0
+               else ansible_facts['hostname']) }}
+
+- name: Vorhandene Periphery-Konfiguration lesen
+  ansible.builtin.slurp:
+    src: "{{ periphery_config_path }}"
+  register: periphery_existing_config
+  failed_when: false
+  no_log: true
+
+- name: Bisherigen connect_as übernehmen
+  ansible.builtin.set_fact:
+    periphery_previous_connect_as: >-
+      {{ (periphery_existing_config.content | b64decode
+          | regex_findall('(?m)^connect_as = "([^"]*)"') | first | default(''))
+         if periphery_existing_config.content is defined
+         else '' }}

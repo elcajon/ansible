@@ -23,8 +23,12 @@ komodo_api_url: "{{ komodo_core_address }}"
 komodo_api_key: ""
 komodo_api_secret: ""
 
-# Servername, unter dem sich der Agent bei Komodo meldet (= Hostname).
-periphery_connect_as: "{{ server_name | default(inventory_hostname) }}"
+# Servername, unter dem sich der Agent bei Komodo meldet. Leer = automatisch
+# der Tailscale-HostName (Fallback: Hostname), damit Setup- und Update-Playbook
+# denselben Namen schreiben. Ändert sich der Name gegenüber der vorhandenen
+# Config, weist die Rolle darauf hin – der Server muss dann in Komodo manuell
+# umbenannt werden.
+periphery_connect_as: ""
 
 # --- Pfade (gespiegelt aus der docker-compose) ---
 periphery_bin: "/usr/local/bin/periphery"
