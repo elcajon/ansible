@@ -15,6 +15,20 @@
       Aus dem Backup wiederherstellen; keine neue Anmeldung wird durchgeführt.
   when: host_tailscale_state.stat.exists
 
+# tailscaled legt beim ersten Start eine State-Datei mit dem Inhalt "{}" an.
+# Das ist keine Identität (nie angemeldet), sonst würde der Host nie beitreten.
+- name: Inhalt des vorhandenen Tailscale-Zustands lesen
+  ansible.builtin.slurp:
+    src: /var/lib/tailscale/tailscaled.state
+  register: host_tailscale_state_content
+  when: host_tailscale_state.stat.exists
+
+- name: Vorhandene Hostidentität bestimmen
+  ansible.builtin.set_fact:
+    host_tailscale_has_identity: >-
+      {{ host_tailscale_state.stat.exists
+         and (host_tailscale_state_content.content | b64decode | trim) not in ['', '{}'] }}
+
 - name: Tailscale mit vorhandener Hostidentität installieren und starten
   ansible.builtin.include_role:
     name: artis3n.tailscale.machine
@@ -22,9 +36,9 @@
     state: present
     tailscale_up_skip: true
     tailscale_authkey: ""
-  when: host_tailscale_state.stat.exists
+  when: host_tailscale_has_identity | bool
 
-- name: Tailscale nur ohne vorhandenen Gerätezustand anmelden
+- name: Tailscale nur ohne vorhandene Hostidentität anmelden
   ansible.builtin.include_role:
     name: artis3n.tailscale.machine
   vars:
@@ -32,4 +46,4 @@
     tailscale_up_skip: false
     tailscale_authkey: "{{ host_tailscale_authkey }}"
     tailscale_args: "--ssh --accept-dns=true --accept-routes=false --advertise-exit-node"
-  when: not host_tailscale_state.stat.exists
+  when: not host_tailscale_has_identity | bool
