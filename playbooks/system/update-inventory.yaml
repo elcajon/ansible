@@ -47,3 +47,8 @@
       vars:
         komodo_api_key: "{{ lookup('community.general.onepassword', 'Komodo', field='Key', vault='CI') }}"
         komodo_api_secret: "{{ lookup('community.general.onepassword', 'Komodo', field='Secret', vault='CI') }}"
+
+    - name: Update Tailscale-Initramfs (nur Hosts mit Initramfs-Config)
+      ansible.builtin.include_role:
+        name: tailscale-initramfs
+        tasks_from: update.yml
