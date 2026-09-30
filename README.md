@@ -41,6 +41,7 @@ ansible-playbook playbooks/system/update-inventory.yaml
 | `backup-tools` | RCLONE für Cloud-Storage |
 | `monitoring-tools` | System-Monitoring |
 | `pangolin-newt` | Pangolin Newt Reverse-Proxy |
+| `tailscale-initramfs` | Hält Tailscale im Initramfs (LUKS-Entsperren) aktuell; nur Hosts mit `/etc/tailscale/initramfs/config` |
 | `proxmox-setup` | Proxmox-Host Konfiguration |
 
 ## Inventar
@@ -57,6 +58,7 @@ Alle Secrets werden über `community.general.onepassword` aus dem Tresor **CI** 
 | `Proxmox API` | `Host-Name`, `Benutzername`, `TokenID`, `Anmeldedaten` |
 | `Tailscale Token` | `Anmeldedaten` |
 | `Tailscale Token - Remote Server` | `Anmeldedaten` |
+| `Tailscale Token - Initramfs` | `Anmeldedaten` (ephemerer Auth-Key für das Initramfs) |
 | `Pangolin - Mannheim` | `Anmeldedaten`, `Host-Name`, `Organisation` |
 | `MBA SSH - Public Key` | `Benutzername` |
 | `Rclone Config` | *(Dokument, geladen via `onepassword_doc`)* |

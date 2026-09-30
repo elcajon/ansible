@@ -1,0 +1,59 @@
+#!/bin/bash
+# Hält das Initramfs mit Tailscale (darkrain42/tailscale-initramfs) aktuell.
+# Cron ruft das stündlich auf; Ansible ruft es nach einem Key-Tausch auf.
+#
+# Das Initramfs enthält die Tailscale-Binaries und den Auth-Key aus
+# /etc/tailscale/initramfs/config. Ein Tailscale-Update baut es nicht von
+# selbst neu (der dpkg-Trigger greift nur bei tailscale-initramfs), deshalb:
+#   1. Tailscale-Pakete aktualisieren, falls eine neue Version im Repo liegt
+#   2. Initramfs neu bauen, sobald sich Paketversionen oder Config geändert haben
+set -euo pipefail
+
+CONFIG=/etc/tailscale/initramfs/config
+STATE_DIR=/var/lib/tailscale-initramfs-refresh
+STAMP="$STATE_DIR/stamp"
+
+log() { logger -t tailscale-initramfs-refresh -- "$*"; echo "$*"; }
+
+# Nur auf Hosts mit Initramfs-Konfiguration
+[ -f "$CONFIG" ] || exit 0
+
+exec 9>/run/tailscale-initramfs-refresh.lock
+flock -n 9 || { echo "läuft bereits"; exit 0; }
+
+export DEBIAN_FRONTEND=noninteractive
+mkdir -p "$STATE_DIR"
+
+if apt-get update -qq >/dev/null 2>&1; then
+  apt-get install -y -qq --only-upgrade \
+    -o Dpkg::Options::=--force-confold \
+    tailscale tailscale-initramfs >/dev/null \
+    || log "WARNUNG: Aktualisierung der Tailscale-Pakete fehlgeschlagen"
+else
+  log "WARNUNG: apt-get update fehlgeschlagen, verwende installierte Versionen"
+fi
+
+current="$(dpkg-query -W -f='${Version}' tailscale) $(dpkg-query -W -f='${Version}' tailscale-initramfs) $(sha256sum < "$CONFIG" | cut -d' ' -f1)"
+
+if [ -f "$STAMP" ] && [ "$(cat "$STAMP")" = "$current" ]; then
+  echo "unverändert"
+  exit 0
+fi
+
+log "Initramfs wird neu gebaut (Tailscale $(dpkg-query -W -f='${Version}' tailscale))"
+build_log="$(mktemp)"
+trap 'rm -f "$build_log"' EXIT
+if ! update-initramfs -u -k all >"$build_log" 2>&1 || grep -qE 'tailscale: ERROR' "$build_log"; then
+  log "FEHLER: Initramfs-Build fehlgeschlagen"
+  tail -n 20 "$build_log" >&2
+  exit 1
+fi
+
+initrd="$(ls -1 /boot/initrd.img-* | sort -V | tail -n 1)"
+# Erst in eine Datei: grep -q würde unter pipefail lsinitramfs per SIGPIPE abbrechen
+lsinitramfs "$initrd" >"$build_log"
+grep -q 'sbin/tailscaled' "$build_log" \
+  || { log "FEHLER: tailscaled fehlt in $initrd"; exit 1; }
+
+echo "$current" > "$STAMP"
+log "rebuilt: $initrd"

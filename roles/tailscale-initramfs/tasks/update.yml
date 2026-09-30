@@ -1,0 +1,68 @@
+---
+# Hosts mit Tailscale im Initramfs (darkrain42/tailscale-initramfs, Entsperren
+# der Root-Platte per Tailscale SSH). Alle anderen Hosts werden übersprungen.
+#
+# - Auth-Key im Initramfs gegen den Key in 1Password abgleichen
+# - Refresh-Skript samt stündlichem Cron installieren; es aktualisiert Tailscale
+#   und baut das Initramfs neu, sobald Version oder Config sich geändert haben
+
+- name: Prüfe ob Tailscale-Initramfs-Config vorhanden ist
+  ansible.builtin.stat:
+    path: /etc/tailscale/initramfs/config
+  register: tailscale_initramfs_config
+
+- name: Tailscale-Initramfs pflegen
+  when: tailscale_initramfs_config.stat.exists
+  block:
+    - name: Cron installieren
+      ansible.builtin.apt:
+        name: cron
+        state: present
+
+    - name: Refresh-Skript installieren
+      ansible.builtin.copy:
+        src: tailscale-initramfs-refresh
+        dest: /usr/local/sbin/tailscale-initramfs-refresh
+        owner: root
+        group: root
+        mode: "0750"
+
+    - name: Stündlichen Cron-Job einrichten
+      ansible.builtin.copy:
+        dest: /etc/cron.d/tailscale-initramfs-refresh
+        owner: root
+        group: root
+        mode: "0644"
+        content: |
+          # Ansible: roles/tailscale-initramfs
+          17 * * * * root /usr/local/sbin/tailscale-initramfs-refresh 2>&1 | logger -t tailscale-initramfs-refresh
+
+    - name: Auth-Key aus 1Password lesen
+      ansible.builtin.set_fact:
+        tailscale_initramfs_authkey: >-
+          {{ lookup('community.general.onepassword', 'Tailscale Token - Initramfs',
+          field='Anmeldedaten', vault='CI') }}
+      no_log: true
+      delegate_to: localhost
+      become: false
+
+    - name: Auth-Key plausibilisieren
+      ansible.builtin.assert:
+        that: tailscale_initramfs_authkey is match('^tskey-')
+        fail_msg: "1Password-Eintrag 'Tailscale Token - Initramfs' enthält keinen Tailscale-Key"
+      no_log: true
+
+    - name: Auth-Key im Initramfs abgleichen
+      ansible.builtin.lineinfile:
+        path: /etc/tailscale/initramfs/config
+        regexp: '^#?\s*TAILSCALE_AUTHKEY='
+        line: 'TAILSCALE_AUTHKEY="{{ tailscale_initramfs_authkey }}"'
+        mode: "0600"
+      no_log: true
+
+    # Das Skript vergleicht Paketversionen und Config-Hash und baut nur bei
+    # Änderung neu (Tailscale-Update, neuer Key)
+    - name: Tailscale aktualisieren und Initramfs bei Bedarf neu bauen
+      ansible.builtin.command: /usr/local/sbin/tailscale-initramfs-refresh
+      register: tailscale_initramfs_refresh
+      changed_when: "'rebuilt:' in tailscale_initramfs_refresh.stdout"
