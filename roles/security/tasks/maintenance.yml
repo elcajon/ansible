@@ -46,7 +46,8 @@
   ansible.builtin.debug:
     msg: >-
       ACHTUNG: {{ inventory_hostname }} benötigt einen Reboot
-      (/var/run/reboot-required vorhanden). Wird via unattended-upgrades
-      um {{ security_unattended_automatic_reboot_time }} Uhr automatisch ausgeführt,
-      sofern security_unattended_automatic_reboot aktiv ist.
+      (/var/run/reboot-required vorhanden).
+      {{ ('Automatischer Neustart um ' ~ security_unattended_automatic_reboot_time ~ ' Uhr aktiviert.')
+         if security_unattended_automatic_reboot
+         else 'Automatische Neustarts sind deaktiviert. Bitte manuell neu starten und ggf. LUKS entsperren.' }}
   when: security_reboot_required_file.stat.exists

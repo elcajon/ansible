@@ -114,10 +114,10 @@ Unattended-Upgrade::Remove-New-Unused-Dependencies "true";
 // (equivalent to apt-get autoremove)
 Unattended-Upgrade::Remove-Unused-Dependencies "true";
 
-// Automatically reboot *WITHOUT CONFIRMATION* if
-//  the file /var/run/reboot-required is found after the upgrade
-// Managed by Ansible (security role) via security_unattended_automatic_reboot
-Unattended-Upgrade::Automatic-Reboot "{{ security_unattended_automatic_reboot | ternary('true', 'false') }}";
+// Keep automatic updates enabled, but require a deliberate manual reboot.
+// LUKS hosts need an operator to unlock their root filesystem after boot.
+// Managed by Ansible; automatic reboots are disabled by default.
+Unattended-Upgrade::Automatic-Reboot "{{ security_unattended_automatic_reboot | default(false) | ternary('true', 'false') }}";
 
 // Automatically reboot even if there are users currently logged in
 // when Unattended-Upgrade::Automatic-Reboot is set to true
