@@ -17,7 +17,7 @@ This role implements basic security measures on a Debian-based server.
   a file (not set live) so it stays idempotent even in LXC containers, where the
   live value resets to 0 on reboot.
 - Configuration of unattended-upgrades for automatic security updates,
-  including automatic reboots when an update requires one
+  with automatic reboots disabled by default
 - Maintenance checks: ensures time synchronization (systemd-timesyncd) is
   active and reports a pending reboot in the play output
 
@@ -27,8 +27,8 @@ This role implements basic security measures on a Debian-based server.
 |----------|---------------|-------------|
 | security_disable_ssh_for_tailscale | `False` | If `True`, the SSH service is disabled (for hosts that should only be reachable via Tailscale). |
 | security_ssh_hardening_options | see [defaults/main.yml](defaults/main.yml) | List of directives written to the SSH hardening drop-in. `PermitRootLogin prohibit-password` is kept because Ansible connects as root via SSH key. |
-| security_unattended_automatic_reboot | `True` | Automatically reboot when `/var/run/reboot-required` exists after an unattended upgrade (e.g. kernel/glibc updates). Set to `False` per host (e.g. Proxmox hypervisors) to avoid uncontrolled reboots. |
-| security_unattended_automatic_reboot_time | `"02:00"` | Time of day for the automatic reboot. |
+| security_unattended_automatic_reboot | `False` | Updates install automatically, but required reboots are performed manually. Keep disabled on LUKS hosts that need operator-assisted unlock. |
+| security_unattended_automatic_reboot_time | `"08:00"` | Only used if automatic reboots are explicitly enabled. |
 
 ## Example
 
@@ -46,6 +46,11 @@ Disable the automatic reboot on a specific host (e.g. a Proxmox hypervisor) via
 # host_vars/proxmox.yml
 security_unattended_automatic_reboot: false
 ```
+
+Zerobyte-backed servers report `/run/reboot-required` through the post-backup
+hook and the existing warning notification channel. This role does not configure
+SMTP. Applying `false` does not cancel a reboot already scheduled by an earlier
+run; check `shutdown --show` and cancel an update-scheduled reboot separately.
 
 ## Dependencies
 
