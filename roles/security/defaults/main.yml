@@ -24,4 +24,4 @@ security_ssh_hardening_options:
 # (z. B. nach Kernel- oder glibc-Updates). Pro Host abschaltbar, z. B. auf
 # Proxmox-Hypervisoren via host_vars: security_unattended_automatic_reboot: false
 security_unattended_automatic_reboot: true
-security_unattended_automatic_reboot_time: "02:00"
+security_unattended_automatic_reboot_time: "04:00"
