@@ -47,10 +47,11 @@ Disable the automatic reboot on a specific host (e.g. a Proxmox hypervisor) via
 security_unattended_automatic_reboot: false
 ```
 
-Zerobyte-backed servers report `/run/reboot-required` through the post-backup
-hook and the existing warning notification channel. This role does not configure
-SMTP. Applying `false` does not cancel a reboot already scheduled by an earlier
-run; check `shutdown --show` and cancel an update-scheduled reboot separately.
+The `update-inventory` playbook checks `/run/reboot-required` again after all
+update tasks and prints a final `NEUSTART ERFORDERLICH` notice for each affected
+host. This is a notice in the Ansible output; no mail or push service is needed.
+Applying `false` does not cancel a reboot already scheduled by an earlier run;
+check `shutdown --show` and cancel an update-scheduled reboot separately.
 
 ## Dependencies
 
