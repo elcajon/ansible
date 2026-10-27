@@ -22,6 +22,6 @@ security_ssh_hardening_options:
 # --- Unattended-Upgrades ---
 # Updates bleiben automatisch; Neustarts erfolgen bewusst manuell.
 # Insbesondere LUKS-Hosts brauchen nach einem Neustart eine Entsperrung.
-# Zerobyte meldet ausstehende Neustarts nach dem Backup per Warnmail.
+# update-inventory meldet ausstehende Neustarts am Ende des Update-Laufs.
 security_unattended_automatic_reboot: false
 security_unattended_automatic_reboot_time: "08:00"

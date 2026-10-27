@@ -52,3 +52,19 @@
       ansible.builtin.include_role:
         name: tailscale-initramfs
         tasks_from: update.yml
+
+  post_tasks:
+    - name: Neustartbedarf nach allen Updates erneut prüfen
+      ansible.builtin.stat:
+        path: /run/reboot-required
+        get_checksum: false
+        get_mime: false
+      register: update_inventory_reboot_required
+
+    - name: Abschlusshinweis für Hosts mit ausstehendem Neustart
+      ansible.builtin.debug:
+        msg: >-
+          NEUSTART ERFORDERLICH: {{ inventory_hostname }}.
+          Bitte den Host manuell neu starten und bei verschlüsselter
+          Systemplatte anschließend LUKS entsperren.
+      when: update_inventory_reboot_required.stat.exists
