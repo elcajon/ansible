@@ -20,8 +20,8 @@ security_ssh_hardening_options:
   - AddressFamily inet
 
 # --- Unattended-Upgrades ---
-# Automatischer Reboot, wenn nach einem Update /var/run/reboot-required existiert
-# (z. B. nach Kernel- oder glibc-Updates). Pro Host abschaltbar, z. B. auf
-# Proxmox-Hypervisoren via host_vars: security_unattended_automatic_reboot: false
-security_unattended_automatic_reboot: true
+# Updates bleiben automatisch; Neustarts erfolgen bewusst manuell.
+# Insbesondere LUKS-Hosts brauchen nach einem Neustart eine Entsperrung.
+# Zerobyte meldet ausstehende Neustarts nach dem Backup per Warnmail.
+security_unattended_automatic_reboot: false
 security_unattended_automatic_reboot_time: "08:00"
