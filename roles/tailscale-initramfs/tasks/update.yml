@@ -27,6 +27,9 @@
         group: root
         mode: "0750"
 
+    # Minute 55: zerobyte sichert um 02:00/02:15/02:30/02:45 und startet die
+    # Stacks per Tailscale SSH wieder. Ein Tailscale-Update startet tailscaled
+    # neu und kappt diese Sitzung, deshalb nicht in die Backup-Läufe legen.
     - name: Stündlichen Cron-Job einrichten
       ansible.builtin.copy:
         dest: /etc/cron.d/tailscale-initramfs-refresh
@@ -35,7 +38,7 @@
         mode: "0644"
         content: |
           # Ansible: roles/tailscale-initramfs
-          17 * * * * root /usr/local/sbin/tailscale-initramfs-refresh 2>&1 | logger -t tailscale-initramfs-refresh
+          55 * * * * root /usr/local/sbin/tailscale-initramfs-refresh 2>&1 | logger -t tailscale-initramfs-refresh
 
     - name: Auth-Key aus 1Password lesen
       ansible.builtin.set_fact:
