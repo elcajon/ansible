@@ -26,3 +26,45 @@
     url: https://raw.githubusercontent.com/community-scripts/ProxmoxVE/b9f26d66ed5131bcded155ebb83784f303cf4355/tools/pve/post-pve-install.sh
     dest: /root/post-pve-install.sh
     mode: "0755"
+
+# Governor/EPP über eine systemd-Unit setzen, damit die Einstellung Reboots
+# und Kernel-Updates übersteht (Proxmox setzt sonst wieder "performance").
+- name: Skript zum Setzen von CPU-Governor und EPP anlegen
+  ansible.builtin.copy:
+    dest: /usr/local/sbin/set-cpu-governor
+    mode: "0755"
+    content: |
+      #!/bin/sh
+      # Verwaltet von Ansible (Rolle proxmox-setup).
+      for c in /sys/devices/system/cpu/cpu[0-9]*/cpufreq; do
+        echo {{ proxmox_cpu_governor }} > "$c/scaling_governor"
+        if [ -w "$c/energy_performance_preference" ]; then
+          echo {{ proxmox_cpu_epp }} > "$c/energy_performance_preference"
+        fi
+      done
+  register: cpu_governor_script
+
+- name: Systemd-Unit für CPU-Governor anlegen
+  ansible.builtin.copy:
+    dest: /etc/systemd/system/cpu-governor.service
+    mode: "0644"
+    content: |
+      [Unit]
+      Description=CPU-Governor ({{ proxmox_cpu_governor }}) und EPP ({{ proxmox_cpu_epp }}) setzen
+      After=sysinit.target
+
+      [Service]
+      Type=oneshot
+      RemainAfterExit=yes
+      ExecStart=/usr/local/sbin/set-cpu-governor
+
+      [Install]
+      WantedBy=multi-user.target
+  register: cpu_governor_unit
+
+- name: CPU-Governor-Unit aktivieren und anwenden
+  ansible.builtin.systemd_service:
+    name: cpu-governor.service
+    enabled: true
+    state: "{{ (cpu_governor_unit.changed or cpu_governor_script.changed) | ternary('restarted', 'started') }}"
+    daemon_reload: "{{ cpu_governor_unit.changed }}"
