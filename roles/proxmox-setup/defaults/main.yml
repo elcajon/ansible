@@ -1,0 +1,11 @@
+# SPDX-License-Identifier: MIT-0
+---
+# CPU-Frequenzsteuerung: Proxmox bootet standardmäßig mit dem Governor
+# "performance". Auf Mobile-CPUs (z. B. i7-1260P im Mini-PC) taktet die CPU
+# dadurch auch im Leerlauf auf vollen Turbo, was Temperaturspitzen und laute
+# Lüfter verursacht. Mit intel_pstate boostet "powersave" unter Last trotzdem
+# voll, bleibt im Leerlauf aber niedrig.
+proxmox_cpu_governor: powersave
+# Energy Performance Preference (nur intel_pstate/amd-pstate im active mode).
+# Mögliche Werte: default, performance, balance_performance, balance_power, power
+proxmox_cpu_epp: balance_power

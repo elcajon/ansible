@@ -8,10 +8,16 @@ This role performs specific configurations for a Proxmox server.
 - Downloads useful community scripts for Proxmox:
   - Home Assistant OS VM creation script
   - Post-Proxmox-installation optimization script
+- Sets the CPU frequency governor and energy performance preference persistently
+  via a `cpu-governor.service` systemd unit (Proxmox defaults to `performance`,
+  which keeps mobile CPUs at full turbo while idle and makes fans loud)
 
 ## Variables
 
-This role currently does not use any configurable variables.
+| Variable | Default | Description |
+|---|---|---|
+| `proxmox_cpu_governor` | `powersave` | CPU frequency governor (`performance` or `powersave` with intel_pstate) |
+| `proxmox_cpu_epp` | `balance_power` | Energy performance preference (`default`, `performance`, `balance_performance`, `balance_power`, `power`) |
 
 ## Example
 
